@@ -1,7 +1,7 @@
 /*
  * bankAccount.h
  *
- *  Created on: 30 áãöî 2016
+ *  Created on: 30 ï¿½ï¿½ï¿½ï¿½ 2016
  *      Author: Eitan Levin
  */
 
@@ -9,6 +9,7 @@
 #define BANKACCOUNT_H_
 
 /*
+ * Here will be all the simplest of functions.
  * This Data Structure assumes trust between it and the user.
  * Only parameters validation is required.
  */
@@ -22,14 +23,17 @@ private:
 public:
 	bankAccount(unsigned int accountNumber, int accountPass, unsigned int balance, bool isFrozen = false) :
 		_id(accountNumber), _password(accountPass), _balance (balance), _isFrozen(isFrozen) {}
-	unsigned int accountNumber();
-	int accountPassword();
-	unsigned int accountBalance();
-	bool isAccountFrozen();
-	bool freeze();
-	bool unFreeze();
-	bool withrawMoney(unsigned int withrawSum);
-	bool depositMoney(unsigned int depositSum);
+	//bankAccount(const bankAccount &obj);  // copy constructor
+	//bankAccount(const bankAccount &obj) : this->_id(obj.getAccountNumber()), this->_password(obj.getAccountPassword()), this->_balance(obj.getAccountBalance()), this->_isFrozen(obj.isAccountFrozen()) {}
+	//bankAccount(const bankAccount& obj) : _id(obj.getAccountNumber()), _password(obj.getAccountPassword()), _balance(obj.getAccountBalance()), _isFrozen(obj.isAccountFrozen()) {};
+	unsigned int getAccountNumber();
+	int getAccountPassword();
+	unsigned int getAccountBalance();
+	bool isAccountFrozen();//True if frozen, false if not frozen
+	bool freeze();//False if already frozen, true otherwise
+	bool unFreeze();//False if already not frozen, true otherwise
+	bool withrawMoney(unsigned int withrawSum);//False if not enough money, true otherwise
+	bool depositMoney(unsigned int depositSum);//False if sum causes unsigned int overflow, true otherwise
 	void printAccount();
 };
 

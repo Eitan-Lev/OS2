@@ -1,7 +1,7 @@
 /*
  * Exceptions.h
  *
- *  Created on: 30 áãöî 2016
+ *  Created on: 30 ï¿½ï¿½ï¿½ï¿½ 2016
  *      Author: Eitan Levin
  */
 
@@ -11,8 +11,12 @@
 class OSException {};
 
 class BankAccountException : public OSException {};
+class AccountNumberAlreadyExistsException : public BankAccountException {};//Should never happen
+class AccountDoesntExistException : public BankAccountException {};//Should never happen
+class InvalidPasswordException : public BankAccountException {};//Should never happen
 class WrongPasswordException : public BankAccountException {};
 class NotEnoughMoneyException : public BankAccountException {};
+class BalanceOverflowException : public BankAccountException {};//Should never happen
 
 
 
