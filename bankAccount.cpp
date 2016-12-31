@@ -15,41 +15,86 @@ using std::endl;
 	return newAccount;
 }*/
 
-unsigned int bankAccount::getAccountNumber() {
+unsigned int bankAccount::getNumber() {//No need for locks, once account is created, number never changes.
 	return this->_id;
 }
 
-int bankAccount::getAccountPassword() {
+int bankAccount::getPassword() {//No need for locks, once account is created, password never changes.
 	return this->_password;
 }
 
-unsigned int bankAccount::getAccountBalance() {
-	return this->_balance;
+unsigned int bankAccount::getBalance() {
+	pthread_mutex_lock(&read_balance_lock);//Lock readers
+	readBalanceCounter++;//Indicate 1 more thread is reading
+	if (readBalanceCounter == 1) {//First reader
+		pthread_mutex_lock(&write_balance_lock);
+	}
+	pthread_mutex_unlock(&read_balance_lock);//Unlock readers
+	unsigned int currentBalance = _balance;//No need to be locked, all readers can pull together. Writers are locked.
+	pthread_mutex_lock(&read_balance_lock);//Lock readers
+	readBalanceCounter--;//Indicate 1 less thread is reading
+	if (readBalanceCounter == 0) {//Last to read
+		pthread_mutex_unlock(&write_balance_lock);
+	}
+	pthread_mutex_unlock(&read_balance_lock);//Unlock readers
+	return currentBalance;
 }
 
 bool bankAccount::isAccountFrozen() {
-	return this->_isFrozen;
+	pthread_mutex_lock(&read_freeze_lock);//Lock readers
+	readFreezeCounter++;//Indicate 1 more thread is reading
+	if (readFreezeCounter == 1) {//First reader
+		pthread_mutex_lock(&write_freeze_lock);
+	}
+	pthread_mutex_unlock(&read_freeze_lock);//Unlock rseaders
+	bool currentFreezeStatus = _isFrozen;//No need to be locked, all readers can pull together. Writers are locked.
+	pthread_mutex_lock(&read_freeze_lock);//Lock readers
+	readFreezeCounter--;//Indicate 1 less thread is reading
+	if (readFreezeCounter == 0) {//Last to read
+		pthread_mutex_unlock(&write_freeze_lock);
+	}
+	pthread_mutex_unlock(&read_freeze_lock);//Unlock readers
+	return currentFreezeStatus;
 }
 
 bool bankAccount::freeze() {
-	if (this->_isFrozen == true) {
+	if (isAccountFrozen() == true) {
+		return false;
+	} else {
+		pthread_mutex_lock(&write_freeze_lock);
+		this->_isFrozen = true;
+		pthread_mutex_unlock(&write_freeze_lock);
+		return true;
+	}
+	/*if (this->_isFrozen == true) {
 		return false;
 	} else {
 		this->_isFrozen = true;
 		return true;
-	}
+	}*/
+	//TODO
 }
 
 bool bankAccount::unFreeze() {
-	if (this->_isFrozen == false) {
+	if (isAccountFrozen() == false) {
+		return false;
+	} else {
+		pthread_mutex_lock(&write_freeze_lock);
+		this->_isFrozen = true;
+		pthread_mutex_unlock(&write_freeze_lock);
+		return true;
+	}
+	/*if (this->_isFrozen == false) {
 		return false;
 	} else {
 		this->_isFrozen = false;
 		return true;
-	}
+	}*/
+	//TODO
 }
 
 bool bankAccount::withrawMoney(unsigned int withrawSum) {
+
 	if (withrawSum > this->_balance) {
 		return false;
 	} else {
@@ -69,4 +114,11 @@ bool bankAccount::depositMoney(unsigned int depositSum) {
 
 void bankAccount::printAccount() {
 	cout << "Account " << this->_id << ": Balance - " << this->_balance << "$ , Account Password - " << this->_password << endl;
+}
+
+bankAccount::~bankAccount() {
+	pthread_mutex_destroy(&read_balance_lock);
+	pthread_mutex_destroy(&write_balance_lock);
+	pthread_mutex_destroy(&read_freeze_lock);
+	pthread_mutex_destroy(&write_freeze_lock);
 }

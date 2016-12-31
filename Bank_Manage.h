@@ -18,6 +18,7 @@
  * Any validation of password or otherwise is done here.
  * All actions are implemented here.
  */
+
 using std::map;
 typedef map<int, bankAccount>BankMap;
 typedef BankMap::value_type Pair;

@@ -42,10 +42,10 @@ unsigned int getAccountBalance(BankMap bankAccountsMap, unsigned int accountNumb
 		throw AccountDoesntExistException();
 	}
 	bankAccount tmpAccount((bankAccountsMap.find(accountNumber))->second);
-	if (accountPass != tmpAccount.getAccountPassword()) {
+	if (accountPass != tmpAccount.getPassword()) {
 		throw WrongPasswordException();
 	}
-	return tmpAccount.getAccountBalance();
+	return tmpAccount.getBalance();
 }
 
 /*
