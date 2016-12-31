@@ -6,14 +6,10 @@
  */
 #include "bankAccount.h"
 #include <iostream>
+#include <assert.h>
 
 using std::cout;
 using std::endl;
-
-/*bankAccount bankAccount::bankAccount(const bankAccount &obj) {
-	bankAccount newAccount(obj._id, obj._password, obj._balance);
-	return newAccount;
-}*/
 
 unsigned int bankAccount::getNumber() {//No need for locks, once account is created, number never changes.
 	return this->_id;
@@ -94,26 +90,45 @@ bool bankAccount::unFreeze() {
 }
 
 bool bankAccount::withrawMoney(unsigned int withrawSum) {
-
-	if (withrawSum > this->_balance) {
+	if (withrawSum > (this->getBalance())) {
+		return false;
+	} else {
+		pthread_mutex_lock(&write_balance_lock);
+		this->_balance -= withrawSum;
+		pthread_mutex_unlock(&write_balance_lock);
+		return true;
+	}
+	/*if (withrawSum > this->_balance) {
 		return false;
 	} else {
 		this->_balance -= withrawSum;
 		return true;
-	}
+	}*/
+	//TODO
 }
 
 bool bankAccount::depositMoney(unsigned int depositSum) {
-	if ((depositSum + this->_balance) < (this->_balance)) {//unsigned int overflow
+	assert((depositSum + this->_balance) > (this->getBalance()));//make sure no overflow
+	if ((depositSum + this->_balance) < (this->getBalance())) {//unsigned int overflow, Should never happen
+		return false;
+	} else {
+		pthread_mutex_lock(&write_balance_lock);
+		this->_balance += depositSum;
+		pthread_mutex_unlock(&write_balance_lock);
+		return true;
+	}
+	/*if ((depositSum + this->_balance) < (this->_balance)) {//unsigned int overflow
 		return false;
 	} else {
 		this->_balance += depositSum;
 		return true;
-	}
+	}*/
+	//TODO
 }
 
 void bankAccount::printAccount() {
-	cout << "Account " << this->_id << ": Balance - " << this->_balance << "$ , Account Password - " << this->_password << endl;
+	cout << "Account " << this->_id << ": Balance - " << this->getBalance() <<
+			"$ , Account Password - " << this->_password << endl;
 }
 
 bankAccount::~bankAccount() {
