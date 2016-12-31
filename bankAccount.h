@@ -31,7 +31,7 @@ private:
 public:
 	bankAccount(unsigned int accountNumber, int accountPass, unsigned int balance, bool isFrozen = false) :
 		_id(accountNumber), _password(accountPass), _balance (balance), _isFrozen(isFrozen),
-		readBalanceCounter(0) , readFreezeCounter(0) {
+		readBalanceCounter(0), readFreezeCounter(0) {
 		pthread_mutex_init(&read_balance_lock, NULL); //mutex is initialized as unlocked
 		pthread_mutex_init(&write_balance_lock, NULL);
 		pthread_mutex_init(&read_freeze_lock, NULL);
@@ -48,7 +48,7 @@ public:
 	bool unFreeze();//False if already not frozen, true otherwise
 	bool withrawMoney(unsigned int withrawSum);//False if not enough money, true otherwise
 	bool depositMoney(unsigned int depositSum);//False if sum causes unsigned int overflow, true otherwise
-	void printAccount();
+	void printAccount();//Is it possible it won't be printed continuously? //TODO
 	~bankAccount();
 };
 

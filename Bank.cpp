@@ -66,8 +66,6 @@ void* Continuous_Print_Run(void* cmds);
 void* Commission_Run(void* cmds);
 void* ATM_Run(void* cmds);
 
-#include "test.h"//TODO for testing only
-
 
 /*
  * In this file the threads will be managed- Init thread, ATM thread, Commission thread and Bank Status thread.
