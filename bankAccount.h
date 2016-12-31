@@ -18,9 +18,9 @@
 
 class bankAccount {
 private:
-	unsigned int _id;
+	int _id;
 	int _password;
-	unsigned int _balance;
+	int _balance;
 	bool _isFrozen;
 	int readBalanceCounter;
 	int readFreezeCounter;
@@ -29,7 +29,7 @@ private:
 	pthread_mutex_t read_freeze_lock;
 	pthread_mutex_t write_freeze_lock;
 public:
-	bankAccount(unsigned int accountNumber, int accountPass, unsigned int balance, bool isFrozen = false) :
+	bankAccount(int accountNumber, int accountPass, int balance, bool isFrozen = false) :
 		_id(accountNumber), _password(accountPass), _balance (balance), _isFrozen(isFrozen),
 		readBalanceCounter(0) , readFreezeCounter(0) {
 		pthread_mutex_init(&read_balance_lock, NULL); //mutex is initialized as unlocked
@@ -40,14 +40,14 @@ public:
 	//bankAccount(const bankAccount &obj);  // copy constructor
 	//bankAccount(const bankAccount &obj) : this->_id(obj.getAccountNumber()), this->_password(obj.getAccountPassword()), this->_balance(obj.getAccountBalance()), this->_isFrozen(obj.isAccountFrozen()) {}
 	//bankAccount(const bankAccount& obj) : _id(obj.getAccountNumber()), _password(obj.getAccountPassword()), _balance(obj.getAccountBalance()), _isFrozen(obj.isAccountFrozen()) {};
-	unsigned int getNumber();
+	int getNumber();
 	int getPassword();
-	unsigned int getBalance();
+	int getBalance();
 	bool isAccountFrozen();//True if frozen, false if not frozen
 	bool freeze();//False if already frozen, true otherwise
 	bool unFreeze();//False if already not frozen, true otherwise
-	bool withrawMoney(unsigned int withrawSum);//False if not enough money, true otherwise
-	bool depositMoney(unsigned int depositSum);//False if sum causes unsigned int overflow, true otherwise
+	bool withrawMoney(int withrawSum);//False if not enough money, true otherwise
+	bool depositMoney(int depositSum);//False if sum causes int overflow, true otherwise
 	void printAccount();
 	~bankAccount();
 };

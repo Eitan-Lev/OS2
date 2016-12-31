@@ -8,10 +8,11 @@
 #ifndef EXCEPTIONS_H_
 #define EXCEPTIONS_H_
 
-class OSException {};
+class OSException : std::exception {};
 
 class BankAccountException : public OSException {};
-class AccountNumberAlreadyExistsException : public BankAccountException {};//Should never happen
+
+class AccountNumberAlreadyExistsException : public BankAccountException {};//Can happen when creating a new account
 class AccountDoesntExistException : public BankAccountException {};//Should never happen
 class InvalidPasswordException : public BankAccountException {};//Should never happen
 class WrongPasswordException : public BankAccountException {};

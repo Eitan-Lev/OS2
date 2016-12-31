@@ -11,7 +11,7 @@
 using std::cout;
 using std::endl;
 
-unsigned int bankAccount::getNumber() {//No need for locks, once account is created, number never changes.
+int bankAccount::getNumber() {//No need for locks, once account is created, number never changes.
 	return this->_id;
 }
 
@@ -19,14 +19,14 @@ int bankAccount::getPassword() {//No need for locks, once account is created, pa
 	return this->_password;
 }
 
-unsigned int bankAccount::getBalance() {
+int bankAccount::getBalance() {
 	pthread_mutex_lock(&read_balance_lock);//Lock readers
 	readBalanceCounter++;//Indicate 1 more thread is reading
 	if (readBalanceCounter == 1) {//First reader
 		pthread_mutex_lock(&write_balance_lock);
 	}
 	pthread_mutex_unlock(&read_balance_lock);//Unlock readers
-	unsigned int currentBalance = _balance;//No need to be locked, all readers can pull together. Writers are locked.
+	int currentBalance = _balance;//No need to be locked, all readers can pull together. Writers are locked.
 	pthread_mutex_lock(&read_balance_lock);//Lock readers
 	readBalanceCounter--;//Indicate 1 less thread is reading
 	if (readBalanceCounter == 0) {//Last to read
@@ -89,7 +89,7 @@ bool bankAccount::unFreeze() {
 	//TODO
 }
 
-bool bankAccount::withrawMoney(unsigned int withrawSum) {
+bool bankAccount::withrawMoney(int withrawSum) {
 	if (withrawSum > (this->getBalance())) {
 		return false;
 	} else {
@@ -107,9 +107,9 @@ bool bankAccount::withrawMoney(unsigned int withrawSum) {
 	//TODO
 }
 
-bool bankAccount::depositMoney(unsigned int depositSum) {
+bool bankAccount::depositMoney(int depositSum) {
 	assert((depositSum + this->_balance) > (this->getBalance()));//make sure no overflow
-	if ((depositSum + this->_balance) < (this->getBalance())) {//unsigned int overflow, Should never happen
+	if ((depositSum + this->_balance) < (this->getBalance())) {//int overflow, Should never happen
 		return false;
 	} else {
 		pthread_mutex_lock(&write_balance_lock);
@@ -117,7 +117,7 @@ bool bankAccount::depositMoney(unsigned int depositSum) {
 		pthread_mutex_unlock(&write_balance_lock);
 		return true;
 	}
-	/*if ((depositSum + this->_balance) < (this->_balance)) {//unsigned int overflow
+	/*if ((depositSum + this->_balance) < (this->_balance)) {//int overflow
 		return false;
 	} else {
 		this->_balance += depositSum;
