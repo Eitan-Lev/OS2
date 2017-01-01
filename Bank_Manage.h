@@ -109,6 +109,7 @@ bool withrawFromAccont(unsigned int accountNumber, int accountPass, unsigned int
  * 		WrongPasswordException if password is not the correct one.
  * 		NotEnoughMoneyException if balance not enough for transfer.
  * Print Requirements: On wrong password, on account doesn't exist, on not enough balance, on successful deposit.
+ * --------Note: if Dest account if frozen, should return wrong password of the frozen one message--------//TODO
  */
 void transferMoney(unsigned int srcAccountNumber, int srcAccountPass, unsigned int DestAccountNumber, unsigned int amount);
 
