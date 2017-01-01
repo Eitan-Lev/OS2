@@ -30,10 +30,11 @@ private:
 
 public:
 	bankMap() {
-		_innerMap = new AccountsMap;
+		//_innerMap = new AccountsMap;//TODO amit
+		_innerMap = AccountsMap();
 	}
 	~bankMap() {
-		delete _innerMap;
+		//delete _innerMap;//TODO amit
 	}
 
 	void openNewAccount(int accountNumber, int accountPass, int balance);

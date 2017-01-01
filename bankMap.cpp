@@ -38,7 +38,7 @@ int bankMap::getAccountBalance(int accountNumber, int accountPass) {
 	if (this->isAccountInMap(accountNumber) == false) {
 		throw AccountDoesntExistException();
 	}
-	bankAccount tmpAccount((bankAccountsMap.find(accountNumber))->second);
+	bankAccount tmpAccount((_innerMap.find(accountNumber))->second);//TODO amit
 	if (accountPass != tmpAccount.getPassword()) {
 		throw WrongPasswordException();
 	}

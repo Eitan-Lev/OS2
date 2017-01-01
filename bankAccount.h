@@ -46,8 +46,8 @@ public:
 	bool isAccountFrozen();//True if frozen, false if not frozen
 	bool freeze();//False if already frozen, true otherwise
 	bool unFreeze();//False if already not frozen, true otherwise
-	bool withrawMoney(unsigned int withrawSum);//False if not enough money, true otherwise
-	bool depositMoney(unsigned int depositSum);//False if sum causes unsigned int overflow, true otherwise
+	bool withrawMoney(int withrawSum);//False if not enough money, true otherwise
+	bool depositMoney(int depositSum);//False if sum causes unsigned int overflow, true otherwise
 	void printAccount();//Is it possible it won't be printed continuously? //TODO
 	~bankAccount();
 };

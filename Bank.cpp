@@ -12,7 +12,7 @@
 #include <assert.h>
 #include <pthread.h>
 
-#include "Bank_Manage.h"
+#include "bankMap.h"
 #include "bankAccount.h"
 #include "Exceptions.h"
 
@@ -80,7 +80,7 @@ void* ATM_Run(void* cmds);
  */
 
 //This is the map for the bank accounts:
-BankMap bankAccountsMap;//TODO beware of duplication
+bankMap bankAccountsMap;//TODO beware of duplication
 
 
 int main(int argc, char* argv[]) {
@@ -165,8 +165,13 @@ int main(int argc, char* argv[]) {
 		printf("threadRes = %d \n", threadRes);
 	}
 	assert(threadRes == SUCCESS_VALUE);
-
 	//================================================================
+	//Destroy locks, free pointers and close file:
+	log_file.close();
+	pthread_mutex_destroy(&map_lock);
+	pthread_mutex_destroy(&bank_balance_lock);
+	pthread_mutex_destroy(&log_file_lock);
+	delete[] ATM_Manage;
 	//================================================================
 	//================================================================
 	//================================================================
@@ -181,8 +186,8 @@ int main(int argc, char* argv[]) {
 	//================================================================
 	/*bankAccount new_account(1,2,3);
 	Pair dataPair(1, new_account);
-	bankAccountsMap.insert(dataPair);
-	return 0;*/
+	bankAccountsMap.insert(dataPair);*/
+	return 0;
 }
 
 void* ATM_Run(void* cmds) {
