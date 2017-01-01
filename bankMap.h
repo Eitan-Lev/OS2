@@ -29,31 +29,27 @@ private:
 	AccountsMap _innerMap;
 
 public:
-	bankMap() {
-		_innerMap = new AccountsMap;
-	}
-	~bankMap() {
-		delete _innerMap;
-	}
 
 	void openNewAccount(int accountNumber, int accountPass, int balance);
 	int getAccountBalance(int accountNumber, int accountPass);
 	void freezeAccount(int accountNumber, int accountPass);
 	void unFreezeAccount(int accountNumber, int accountPass);
-	bool depositToAccount(int accountNumber, int accountPass, int depositSum);
-	bool withrawFromAccont(int accountNumber, int accountPass, int withrawSum);
-	void transferMoney(int srcAccountNumber, int srcAccountPass, int DestAccountNumber, int amount);
-	int takeComission(int accountNumber);
-	int getPassword(int accountNumber, int accountPass);
+	void depositToAccount(int accountNumber, int accountPass, int depositSum);
+	void withrawFromAccont(int accountNumber, int accountPass, int withrawSum);
+	void transferMoney(int srcAccountNumber, int srcAccountPass, int destAccountNumber, int amount);
+	int takeComission(int accountNumber, int percentage);
+	int getPassword(int accountNumber);
+	bool checkPassword(int accountNumber, int accountPass);
 	bool isAccountInMap(int accountNumber);
-
 };
 
 //This is the map for the bank accounts:
 //BankMap bankAccountsMap;//TODO beware of duplication
 
+/* What is this? TODO
 #define SRC_ACCOUNT 1
 #define DST_ACCOUNT 2
+*/
 
 
 
