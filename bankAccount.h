@@ -37,9 +37,6 @@ public:
 		pthread_mutex_init(&read_freeze_lock, NULL);
 		pthread_mutex_init(&write_freeze_lock, NULL);
 	}
-	//bankAccount(const bankAccount &obj);  // copy constructor
-	//bankAccount(const bankAccount &obj) : this->_id(obj.getAccountNumber()), this->_password(obj.getAccountPassword()), this->_balance(obj.getAccountBalance()), this->_isFrozen(obj.isAccountFrozen()) {}
-	//bankAccount(const bankAccount& obj) : _id(obj.getAccountNumber()), _password(obj.getAccountPassword()), _balance(obj.getAccountBalance()), _isFrozen(obj.isAccountFrozen()) {};
 	int getNumber();
 	int getPassword();
 	int getBalance();
@@ -49,6 +46,11 @@ public:
 	bool withrawMoney(int withrawSum);//False if not enough money, true otherwise
 	bool depositMoney(int depositSum);//False if sum causes unsigned int overflow, true otherwise
 	void printAccount();//Is it possible it won't be printed continuously? //TODO
+	void lockAccount();//Use only for money transfer!
+	void unLockAccount();//Use only for money transfer!
+	bool transferWithraw(int withrawSum);//Use only for money transfer and only after lockAccount!
+	bool transferDeposit(int depositSum);//Use only for money transfer and only after lockAccount!
+	int transferCheckBalance();//Use only for money transfer and only after lockAccount!
 	~bankAccount();
 };
 
