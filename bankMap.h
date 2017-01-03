@@ -34,13 +34,14 @@ public:
 	int getAccountBalance(int accountNumber, int accountPass);
 	void freezeAccount(int accountNumber, int accountPass);
 	void unFreezeAccount(int accountNumber, int accountPass);
-	void depositToAccount(int accountNumber, int accountPass, int depositSum);
-	void withrawFromAccont(int accountNumber, int accountPass, int withrawSum);
-	void transferMoney(int srcAccountNumber, int srcAccountPass, int destAccountNumber, int amount);
+	void depositToAccount(int accountNumber, int accountPass, int depositSum);//FIXME frozen
+	void withrawFromAccount(int accountNumber, int accountPass, int withrawSum);//FIXME frozen
+	void transferMoney(int srcAccountNumber, int srcAccountPass, int destAccountNumber, int amount);//FIXME frozen
 	int takeComission(int accountNumber, int percentage);
 	int getPassword(int accountNumber);
 	bool checkPassword(int accountNumber, int accountPass);
 	bool isAccountInMap(int accountNumber);
+	bool transferGetBalance(int accountNumber);//Use only for money transfer!//TODO
 };
 
 //This is the map for the bank accounts:

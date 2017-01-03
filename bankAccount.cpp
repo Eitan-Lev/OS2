@@ -76,6 +76,7 @@ bool bankAccount::unFreeze() {
 }
 
 bool bankAccount::withrawMoney(int withrawSum) {
+	assert(isAccountFrozen() == false);
 	if (withrawSum > (this->getBalance())) {
 		return false;
 	} else {
@@ -87,8 +88,8 @@ bool bankAccount::withrawMoney(int withrawSum) {
 }
 
 bool bankAccount::depositMoney(int depositSum) {
-	assert((depositSum + this->_balance) > (this->getBalance()));//make sure no overflow
-	if ((depositSum + this->_balance) < (this->getBalance())) {//int overflow, Should never happen
+	assert(((depositSum + this->_balance) > (this->getBalance()))  && (isAccountFrozen() == false));//make sure no overflow
+	if (((depositSum + this->_balance) < (this->getBalance())) || (isAccountFrozen() == true)) {//int overflow, Should never happen
 		return false;
 	} else {
 		pthread_mutex_lock(&write_balance_lock);

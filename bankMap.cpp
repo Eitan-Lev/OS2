@@ -96,7 +96,7 @@ bool depositToAccont(int accountNumber, int accountPass, int depositSum) {
  * 		NotEnoughMoneyException if balance not enough for withdrawal.
  * Print Requirements: On wrong password, on account doesn't exist, on not enough balance, on successful deposit.
  */
-bool withrawFromAccont(int accountNumber, int accountPass, int withrawSum) {
+bool withrawFromAccount(int accountNumber, int accountPass, int withrawSum) {
 
 	return true;
 }

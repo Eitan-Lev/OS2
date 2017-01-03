@@ -2,16 +2,17 @@
 CC = g++
 CFLAGS = -g -Wall -lpthread
 CCLINK = $(CC)
-OBJS = Bank.o bankAccount.o Bank_Manage.o Exceptions.o 
+OBJS = Bank.o bankAccount.o bankMap.o Exceptions.o MacroBank.h
 RM = rm -f
 # Creating the  executable
 Bank: $(OBJS) 
 	$(CCLINK) -o Bank $(OBJS) -lpthread
 # Creating the object files
-Bank_Manage.o: Bank_Manage.cpp Bank_Manage.h bankAccount.h 
+bankMap.o: bankMap.cpp bankMap.h bankAccount.h 
 bankAccount.o: bankAccount.cpp bankAccount.h
-Bank.o: Bank.cpp Bank_Manage.h
+Bank.o: Bank.cpp bankMap.h MacroBank.h
 Exceptions.o: Exceptions.cpp Exceptions.h
+MacroBank.o : MacroBank.h
 # Cleaning old files before new make
 clean: 
 	$(RM) Bank *.o *~ "#"* core.*
