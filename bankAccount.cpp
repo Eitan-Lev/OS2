@@ -113,7 +113,7 @@ void bankAccount::unLockAccount() {
 	pthread_mutex_unlock(&read_balance_lock);//Lock readers
 	pthread_mutex_unlock(&write_balance_lock);
 }
-bool bankAccount::transferWithraw(int withrawSum) {
+bool bankAccount::transferWithdraw(int withrawSum) {
 	if (withrawSum > (this->_balance)) {
 		return false;
 	} else {

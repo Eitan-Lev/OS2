@@ -41,7 +41,7 @@ public:
 	int getPassword(int accountNumber);
 	bool checkPassword(int accountNumber, int accountPass);
 	bool isAccountInMap(int accountNumber);
-	bool transferGetBalance(int accountNumber);//Use only for money transfer!//TODO
+	int transferGetBalance(int accountNumber);//Use only for money transfer!//TODO
 };
 
 //This is the map for the bank accounts:

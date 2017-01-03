@@ -11,6 +11,7 @@
 #include <string>
 #include <assert.h>
 #include <pthread.h>
+#include <unistd.h>
 
 #include "bankMap.h"
 #include "bankAccount.h"
