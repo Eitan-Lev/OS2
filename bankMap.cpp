@@ -224,3 +224,15 @@ bool bankMap::isAccountInMap(int accountNumber) {
 int bankMap::transferGetBalance(int accountNumber) {//Use only for money transfer!//TODO
 	return false;
 }
+
+IteratorConst bankMap::begin() {
+	return (this->_innerMap).begin();
+}
+
+IteratorConst bankMap::end() {
+	return (this->_innerMap).end();
+}
+
+void bankMap::printAccountInMap(int accountNumber) {
+	this->_innerMap[accountNumber].printAccount();
+}

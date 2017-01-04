@@ -19,32 +19,6 @@
 #include "MacroBank.h"
 
 
-
-/*#include <math.h>
-#include <iostream>
-#include <string>
-#include <pthread.h>
-#include <time.h>
-#include <stdlib.h>
-#include <map>
-#include <fstream>
-#include <sstream>
-#include <exception>
-using std::map;
-using std::istringstream;
-using std::ifstream;
-using std::string;
-using std::getline;
-using std::cout;
-using std::endl;
-using std::FILE;
-using std::stringstream;
-using std::ostream;
-using std::ofstream;
-using std::pair;
-using std::exception;*/
-
-
 #define ERROR_VALUE (-1)
 #define SUCCESS_VALUE (0)
 
@@ -70,7 +44,9 @@ public:
 void* Continuous_Print_Run(void* cmds);
 void* Commission_Run(void* cmds);
 void* ATM_Run(void* cmds);
-
+int BankBalance;
+bool atmThreadRunning;
+bool commissionThreadRunning;
 
 /*
  * In this file the threads will be managed- Init thread, ATM thread, Commission thread and Bank Status thread.
@@ -114,6 +90,9 @@ int main(int argc, char* argv[]) {
 	pthread_mutex_init(&log_file_lock, NULL);
 	//================================================================
 	//Preparing all threads and data:
+	atmThreadRunning = false;
+	commissionThreadRunning = false;
+	BankBalance = 0;
 	log_file.open("log.txt");
  	pthread_t threads_ATM[ATMs_NUMBER];
 	pthread_t thread_Comission;
@@ -135,6 +114,7 @@ int main(int argc, char* argv[]) {
 			exit (ERROR_VALUE);
 		}
 	}
+	atmThreadRunning = true;
 	threadRes = pthread_create(&thread_Comission, NULL, Commission_Run, NULL);
 	if (threadRes != SUCCESS_VALUE) {
 		fprintf(stderr, "error: pthread_create, threadRes: %d\n", threadRes);
@@ -156,6 +136,7 @@ int main(int argc, char* argv[]) {
 		}
 		assert(threadRes == SUCCESS_VALUE);
 	}
+	atmThreadRunning = false;
 	threadRes = pthread_join(thread_Comission, NULL);
 	if (threadRes != SUCCESS_VALUE) {//TODO only for testing
 		printf("pthread_join failure:\n");
@@ -177,21 +158,6 @@ int main(int argc, char* argv[]) {
 	pthread_mutex_destroy(&bank_balance_lock);
 	pthread_mutex_destroy(&log_file_lock);
 	delete[] ATM_Manage;
-	//================================================================
-	//================================================================
-	//================================================================
-	//================================================================
-	//================================================================
-	//================================================================
-	//================================================================
-	//================================================================
-	//================================================================
-	//================================================================
-	//================================================================
-	//================================================================
-	/*bankAccount new_account(1,2,3);
-	Pair dataPair(1, new_account);
-	bankAccountsMap.insert(dataPair);*/
 	return 0;
 }
 
@@ -302,7 +268,7 @@ void* ATM_Run(void* cmds) {
 		} else if (opCode == 'B') {//Check Balance
 			try	{
 				sleep(1);
-				int balance = bankAccountsMap.getAccountBalance(accountNumber, password);
+				balance = bankAccountsMap.getAccountBalance(accountNumber, password);
 				LOG_BALANCE(atmNumber, accountNumber, balance);
 			} catch (WrongPasswordException&) {
 				WRONG_PASSWORD(atmNumber, accountNumber);
@@ -340,10 +306,53 @@ void* ATM_Run(void* cmds) {
 }
 
 void* Commission_Run(void* cmds) {
+	commissionThreadRunning = true;
+	int commission, accountNumber;
+	double percentage;
+	IteratorConst account;
+	while(atmThreadRunning) {
+		percentage = ((((rand())%(2)) + 2)/100);//y = rand, x = (y(mod2)+2)/100
+		for (account = bankAccountsMap.begin(); account != bankAccountsMap.end(); account++) {
+			accountNumber = account->first;
+			commission = bankAccountsMap.takeComission(accountNumber, percentage);
+			pthread_mutex_lock(&bank_balance_lock);
+			BankBalance += commission;
+			pthread_mutex_unlock(&bank_balance_lock);
+			LOG_COMMISSION(percentage, commission, accountNumber);
+			sleep(3);//TODO why 3 seconds? from Lior
+		}
+	}
+	commissionThreadRunning = false;
+	pthread_exit(NULL);//FIXME why? Lior
 	return NULL;
 }
 
 void* Continuous_Print_Run(void* cmds) {
+	int accountNumber;
+	IteratorConst account;
+	while(true) {//Continuous printing
+		if (atmThreadRunning == false && commissionThreadRunning == false) {
+			break;//ATMs threads are done and so is the bank commission thread
+		}
+		printf("\033[2J");
+		printf("\033[1;1H");
+		//cout << "\033[2J" << "\033[1;1H";//FIXME
+		cout << "Current Bank Status" << endl;
+		for (account = bankAccountsMap.begin(); account != bankAccountsMap.end(); account++) {
+			accountNumber = account->first;
+			bankAccountsMap.printAccountInMap(accountNumber);
+		}
+		pthread_mutex_lock(&bank_balance_lock); // no need for readers/writers because only 1 thread reading and only 1 thread writing
+		cout << "The Bank has " << BankBalance << " $" << endl;
+		pthread_mutex_unlock(&bank_balance_lock);
+		usleep(500000);//FIXME why? Lior
+	}
+	pthread_exit(NULL);//FIXME why? Lior
 	return NULL;
 }
+
+
+
+
+
 

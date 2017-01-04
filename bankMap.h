@@ -23,11 +23,12 @@ using std::map;
 typedef map<int, bankAccount> AccountsMap;
 typedef AccountsMap::value_type Pair;
 typedef AccountsMap::iterator Iterator;
+typedef AccountsMap::const_iterator IteratorConst;
 
 class bankMap {
 private:
 	AccountsMap _innerMap;
-
+	IteratorConst accountIter;
 public:
 
 	void openNewAccount(int accountNumber, int accountPass, int balance);
@@ -42,15 +43,10 @@ public:
 	bool checkPassword(int accountNumber, int accountPass);
 	bool isAccountInMap(int accountNumber);
 	int transferGetBalance(int accountNumber);//Use only for money transfer!//TODO
+	void printAccountInMap(int accountNumber);//FIXME
+	IteratorConst begin();//FIXME
+	IteratorConst end();//FIXME
 };
-
-//This is the map for the bank accounts:
-//BankMap bankAccountsMap;//TODO beware of duplication
-
-/* What is this? TODO
-#define SRC_ACCOUNT 1
-#define DST_ACCOUNT 2
-*/
 
 
 

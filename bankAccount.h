@@ -51,7 +51,7 @@ public:
 		pthread_mutex_init(&write_freeze_lock, NULL);
 	}
 	//Copy Constructor:
-	bankAccount(const bankAccount& obj) {
+	/*bankAccount(const bankAccount& obj) {
 		this->_id = obj._id;
 		this->_password = obj._password;
 		this->_balance = obj._balance;
@@ -62,7 +62,7 @@ public:
 		pthread_mutex_init(&write_balance_lock, NULL);
 		pthread_mutex_init(&read_freeze_lock, NULL);
 		pthread_mutex_init(&write_freeze_lock, NULL);
-	}
+	}*/
 	int getNumber();
 	int getPassword();
 	int getBalance();

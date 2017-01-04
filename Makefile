@@ -1,12 +1,12 @@
 # Makefile for the HW2
 CC = g++
-CFLAGS = -g -Wall -lpthread
+CFLAGS = -g -Wall -lpthread -std=c++11
 CCLINK = $(CC)
 OBJS = Bank.o bankAccount.o bankMap.o Exceptions.o MacroBank.h
 RM = rm -f
 # Creating the  executable
 Bank: $(OBJS) 
-	$(CCLINK) -o Bank $(OBJS) -lpthread
+	$(CCLINK) $(CFLAGS) -o Bank $(OBJS)
 # Creating the object files
 bankMap.o: bankMap.cpp bankMap.h bankAccount.h 
 bankAccount.o: bankAccount.cpp bankAccount.h
