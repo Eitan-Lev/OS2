@@ -5,6 +5,10 @@
  *      Author: Eitan Levin
  */
 #include "bankMap.h"
+#include <ctime>
+#include <cstdlib>
+
+//TODO: Add a Macro for checking if the account exists and if the password is correct.
 
 /*
  * ****openNewAccount****
@@ -38,11 +42,10 @@ int bankMap::getAccountBalance(int accountNumber, int accountPass) {
 	if (this->isAccountInMap(accountNumber) == false) {
 		throw AccountDoesntExistException();
 	}
-	bankAccount tmpAccount((bankAccountsMap.find(accountNumber))->second);
-	if (accountPass != tmpAccount.getPassword()) {
+	if(this->checkPassword(accountNumber, accountPass == false)) {
 		throw WrongPasswordException();
 	}
-	return tmpAccount.getBalance();
+	return this->_innerMap[accountNumber].getBalance();
 }
 
 /*
@@ -54,8 +57,17 @@ int bankMap::getAccountBalance(int accountNumber, int accountPass) {
  * 		WrongPasswordException if password is not the correct one.
  * Print Requirements: On wrong password, on account doesn't exist.
  */
-void freezeAccount(int accountNumber, int accountPass) {
-
+void bankMap::freezeAccount(int accountNumber, int accountPass) {
+	if (this->isAccountInMap(accountNumber) == false) {
+		throw AccountDoesntExistException();
+	}
+	if(this->checkPassword(accountNumber, accountPass) == false) {
+		throw WrongPasswordException();
+	}
+	bool result = this->_innerMap[accountNumber].freeze();
+	if(result == false) {
+		//Undefined according to pdf. We should decide TODO
+	}
 }
 
 /*
@@ -67,8 +79,17 @@ void freezeAccount(int accountNumber, int accountPass) {
  * 		WrongPasswordException if password is not the correct one.
  * Print Requirements: On wrong password, on account doesn't exist.
  */
-void unFreezeAccount(int accountNumber, int accountPass) {
-
+void bankMap::unFreezeAccount(int accountNumber, int accountPass) {
+	if (this->isAccountInMap(accountNumber) == false) {
+		throw AccountDoesntExistException();
+	}
+	if(this->checkPassword(accountNumber, accountPass) == false) {
+		throw WrongPasswordException();
+	}
+	bool result = this->_innerMap[accountNumber].unFreeze();
+	if(result == false) {
+		//According to pdf do nothing. Do we want/need to know it wasn't frozen? TODO
+	}
 }
 
 /*
@@ -78,12 +99,19 @@ void unFreezeAccount(int accountNumber, int accountPass) {
  * Error Values:
  * 		AccountDoesntExistException if account doesn't exist in map.
  * 		WrongPasswordException if password is not the correct one.
- * 		BalanceOverflowException if deposit causes int balance overflow.
+ * 		BalanceOverflowException if deposit causes int balance overflow. //TODO do you really think it is possible?
  * Print Requirements: On wrong password, on account doesn't exist, on successful deposit.
  */
-bool depositToAccont(int accountNumber, int accountPass, int depositSum) {
-
-	return true;
+void bankMap::depositToAccount(int accountNumber, int accountPass, int depositSum) {
+	if (this->isAccountInMap(accountNumber) == false) {
+		throw AccountDoesntExistException();
+	}
+	if(this->checkPassword(accountNumber, accountPass) == false) {
+		throw WrongPasswordException();
+	}
+	if(this->_innerMap[accountNumber].depositMoney(depositSum) == false) {
+		throw BalanceOverflowException();
+	}
 }
 
 /*
@@ -96,9 +124,16 @@ bool depositToAccont(int accountNumber, int accountPass, int depositSum) {
  * 		NotEnoughMoneyException if balance not enough for withdrawal.
  * Print Requirements: On wrong password, on account doesn't exist, on not enough balance, on successful deposit.
  */
-bool withrawFromAccont(int accountNumber, int accountPass, int withrawSum) {
-
-	return true;
+void bankMap::withrawFromAccont(int accountNumber, int accountPass, int withrawSum) {
+	if (this->isAccountInMap(accountNumber) == false) {
+		throw AccountDoesntExistException();
+	}
+	if(this->checkPassword(accountNumber, accountPass) == false) {
+		throw WrongPasswordException();
+	}
+	if(this->_innerMap[accountNumber].withrawMoney(withrawSum) == false) {
+		throw NotEnoughMoneyException();
+	}
 }
 
 /*
@@ -111,8 +146,20 @@ bool withrawFromAccont(int accountNumber, int accountPass, int withrawSum) {
  * 		NotEnoughMoneyException if balance not enough for transfer.
  * Print Requirements: On wrong password, on account doesn't exist, on not enough balance, on successful deposit.
  */
-void transferMoney(int srcAccountNumber, int srcAccountPass, int DestAccountNumber, int amount) {
-
+void bankMap::transferMoney(int srcAccountNumber, int srcAccountPass, int destAccountNumber, int amount) {
+	if (this->isAccountInMap(srcAccountNumber) == false || this->isAccountInMap(DestAccountNumber) == false) {
+		throw AccountDoesntExistException();
+	}
+	if(this->checkPassword(srcAccountNumber, srcAccountPass) == false) {
+		throw WrongPasswordException();
+	}
+	//FIXME Make sure the functions match
+	this->_innerMap[srcAccountNumber].lockAccount();
+	this->_innerMap[destAccountNumber].lockAccount();
+	this->_innerMap[srcAccountNumber].transferWithdraw(amount);
+	this->_innerMap[destAccountNumber].transferDeposit(amount);
+	this->_innerMap[destAccountNumber].unLockAccount();
+	this->_innerMap[srcAccountNumber].unLockAccount();
 }
 
 /*
@@ -124,7 +171,12 @@ void transferMoney(int srcAccountNumber, int srcAccountPass, int DestAccountNumb
  * Print Requirements: if account dosen't exist.
  * Return Values: the commission taken.
  */
-int takeComission(int accountNumber) {
+int bankMap::takeComission(int accountNumber, int percentage) {
+	if (this->isAccountInMap(accountNumber) == false) {
+		throw AccountDoesntExistException();
+	}
+	//NEEDS TO BE ATOMIC IN bankAccount.cpp Note the percentage should be decided in bank.cpp and pass
+	//As an argument to this function, as well as to the bankAccount function TODO
 
 	return 0;
 }
@@ -134,14 +186,26 @@ int takeComission(int accountNumber) {
  * Get a given account password.
  * Parameters: the account number.
  * Error Values:
- * 		AccountNumberAlreadyExistsException if account already exists in map.
- * 		InvalidPasswordException if password is not 4 digits.
+ * 		AccountDoesntExistException if the account doesn't exist in map.
  * Return Values: account password.
- * --------Note: Helper function, isn't required.--------
  */
-int getPassword(int accountNumber, int accountPass) {
+int bankMap::getPassword(int accountNumber) {
+	if (this->isAccountInMap(accountNumber) == false) {
+		throw AccountDoesntExistException();
+	}
+	return this->_innerMap[accountNumber].getPassword();
+}
 
-	return 0;
+/*
+ * ****checkPassword****
+ * Check if the account with "accountNumber" has the password "accountPass"
+ * Parameters: the account number, the password.
+ * Return Values: true- if password matches.
+ *				  false- otherwise.
+ */
+bool bankMap::checkPassword(int accountNumber, int accountPass) {
+	int realPass = this->getPassword(accountNumber);
+	return (realPass == accountPass) ? true : false;
 }
 
 /*
@@ -149,7 +213,6 @@ int getPassword(int accountNumber, int accountPass) {
  * Check if given account exists in map.
  * Parameters: the account number.
  * Return Values: true if exists, false if doesn't.
- * --------Note: Helper function, isn't required.--------
  */
 bool bankMap::isAccountInMap(int accountNumber) {
 	if(this->_innerMap.find(accountNumber) == this->_innerMap.end()) {
@@ -157,4 +220,6 @@ bool bankMap::isAccountInMap(int accountNumber) {
 	}
 	return true;
 }
+
+
 
