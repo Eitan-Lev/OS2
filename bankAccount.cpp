@@ -62,13 +62,6 @@ bool bankAccount::freeze() {
 		pthread_mutex_unlock(&write_freeze_lock);
 		return true;
 	}
-	/*if (this->_isFrozen == true) {
-		return false;
-	} else {
-		this->_isFrozen = true;
-		return true;
-	}*/
-	//TODO
 }
 
 bool bankAccount::unFreeze() {
@@ -80,16 +73,10 @@ bool bankAccount::unFreeze() {
 		pthread_mutex_unlock(&write_freeze_lock);
 		return true;
 	}
-	/*if (this->_isFrozen == false) {
-		return false;
-	} else {
-		this->_isFrozen = false;
-		return true;
-	}*/
-	//TODO
 }
 
 bool bankAccount::withrawMoney(int withrawSum) {
+	assert(isAccountFrozen() == false);
 	if (withrawSum > (this->getBalance())) {
 		return false;
 	} else {
@@ -98,18 +85,11 @@ bool bankAccount::withrawMoney(int withrawSum) {
 		pthread_mutex_unlock(&write_balance_lock);
 		return true;
 	}
-	/*if (withrawSum > this->_balance) {
-		return false;
-	} else {
-		this->_balance -= withrawSum;
-		return true;
-	}*/
-	//TODO
 }
 
 bool bankAccount::depositMoney(int depositSum) {
-	assert((depositSum + this->_balance) > (this->getBalance()));//make sure no overflow
-	if ((depositSum + this->_balance) < (this->getBalance())) {//int overflow, Should never happen
+	assert(((depositSum + this->_balance) > (this->getBalance()))  && (isAccountFrozen() == false));//make sure no overflow
+	if (((depositSum + this->_balance) < (this->getBalance())) || (isAccountFrozen() == true)) {//int overflow, Should never happen
 		return false;
 	} else {
 		pthread_mutex_lock(&write_balance_lock);
@@ -117,18 +97,43 @@ bool bankAccount::depositMoney(int depositSum) {
 		pthread_mutex_unlock(&write_balance_lock);
 		return true;
 	}
-	/*if ((depositSum + this->_balance) < (this->_balance)) {//int overflow
-		return false;
-	} else {
-		this->_balance += depositSum;
-		return true;
-	}*/
-	//TODO
 }
 
 void bankAccount::printAccount() {
 	cout << "Account " << this->_id << ": Balance - " << this->getBalance() <<
 			"$ , Account Password - " << this->_password << endl;
+}
+
+void bankAccount::lockAccount() {
+	pthread_mutex_lock(&write_balance_lock);
+	pthread_mutex_lock(&read_balance_lock);//Lock readers
+}
+
+void bankAccount::unLockAccount() {
+	pthread_mutex_unlock(&read_balance_lock);//Lock readers
+	pthread_mutex_unlock(&write_balance_lock);
+}
+bool bankAccount::transferWithdraw(int withrawSum) {
+	if (withrawSum > (this->_balance)) {
+		return false;
+	} else {
+		this->_balance -= withrawSum;
+		return true;
+	}
+}
+
+bool bankAccount::transferDeposit(int depositSum) {
+	assert((depositSum + this->_balance) > (this->getBalance()));//make sure no overflow
+	if ((depositSum + this->_balance) < (this->getBalance())) {//int overflow, Should never happen
+		return false;
+	} else {
+		this->_balance += depositSum;
+		return true;
+	}
+}
+
+int bankAccount::transferCheckBalance() {
+	return this->_balance;
 }
 
 bankAccount::~bankAccount() {

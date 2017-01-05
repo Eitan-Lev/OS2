@@ -1,7 +1,7 @@
 /*
  * bankMap.h
  *
- *  Created on: 30 ���� 2016
+ *
  *      Author: Eitan Levin
  */
 
@@ -23,34 +23,29 @@ using std::map;
 typedef map<int, bankAccount> AccountsMap;
 typedef AccountsMap::value_type Pair;
 typedef AccountsMap::iterator Iterator;
+typedef AccountsMap::const_iterator IteratorConst;
 
 class bankMap {
 private:
 	AccountsMap _innerMap;
-
+	IteratorConst accountIter;
 public:
 
 	void openNewAccount(int accountNumber, int accountPass, int balance);
 	int getAccountBalance(int accountNumber, int accountPass);
 	void freezeAccount(int accountNumber, int accountPass);
 	void unFreezeAccount(int accountNumber, int accountPass);
-	void depositToAccount(int accountNumber, int accountPass, int depositSum);
-	void withrawFromAccont(int accountNumber, int accountPass, int withrawSum);
-	void transferMoney(int srcAccountNumber, int srcAccountPass, int destAccountNumber, int amount);
+	void depositToAccount(int accountNumber, int accountPass, int depositSum);//FIXME frozen
+	void withrawFromAccount(int accountNumber, int accountPass, int withrawSum);//FIXME frozen
+	void transferMoney(int srcAccountNumber, int srcAccountPass, int destAccountNumber, int amount);//FIXME frozen
 	int takeComission(int accountNumber, int percentage);
 	int getPassword(int accountNumber);
 	bool checkPassword(int accountNumber, int accountPass);
 	bool isAccountInMap(int accountNumber);
+	int transferGetBalance(int accountNumber);//Use only for money transfer!//TODO
+	void printAccountInMap(int accountNumber);//FIXME
+	IteratorConst begin();//FIXME
+	IteratorConst end();//FIXME
 };
-
-//This is the map for the bank accounts:
-//BankMap bankAccountsMap;//TODO beware of duplication
-
-/* What is this? TODO
-#define SRC_ACCOUNT 1
-#define DST_ACCOUNT 2
-*/
-
-
 
 #endif /* BANK_MAP_H_ */

@@ -1,7 +1,6 @@
 /*
  * bankMap.c
  *
- *  Created on: 30 ���� 2016
  *      Author: Eitan Levin
  */
 #include "bankMap.h"
@@ -45,7 +44,8 @@ int bankMap::getAccountBalance(int accountNumber, int accountPass) {
 	if(this->checkPassword(accountNumber, accountPass == false)) {
 		throw WrongPasswordException();
 	}
-	return this->_innerMap[accountNumber].getBalance();
+	//return ((this->_innerMap[accountNumber]).getBalance());//FIXME Amit: why?
+	return 0;
 }
 
 /*
@@ -124,7 +124,7 @@ void bankMap::depositToAccount(int accountNumber, int accountPass, int depositSu
  * 		NotEnoughMoneyException if balance not enough for withdrawal.
  * Print Requirements: On wrong password, on account doesn't exist, on not enough balance, on successful deposit.
  */
-void bankMap::withrawFromAccont(int accountNumber, int accountPass, int withrawSum) {
+void bankMap::withrawFromAccount(int accountNumber, int accountPass, int withrawSum) {
 	if (this->isAccountInMap(accountNumber) == false) {
 		throw AccountDoesntExistException();
 	}
@@ -147,7 +147,7 @@ void bankMap::withrawFromAccont(int accountNumber, int accountPass, int withrawS
  * Print Requirements: On wrong password, on account doesn't exist, on not enough balance, on successful deposit.
  */
 void bankMap::transferMoney(int srcAccountNumber, int srcAccountPass, int destAccountNumber, int amount) {
-	if (this->isAccountInMap(srcAccountNumber) == false || this->isAccountInMap(DestAccountNumber) == false) {
+	if (this->isAccountInMap(srcAccountNumber) == false || this->isAccountInMap(destAccountNumber) == false) {
 		throw AccountDoesntExistException();
 	}
 	if(this->checkPassword(srcAccountNumber, srcAccountPass) == false) {
@@ -221,5 +221,19 @@ bool bankMap::isAccountInMap(int accountNumber) {
 	return true;
 }
 
+int bankMap::transferGetBalance(int accountNumber) {//Use only for money transfer!//TODO
+	return false;
+}
 
+IteratorConst bankMap::begin() {
+	return (this->_innerMap).begin();
+}
+
+IteratorConst bankMap::end() {
+	return (this->_innerMap).end();
+}
+
+void bankMap::printAccountInMap(int accountNumber) {
+	this->_innerMap[accountNumber].printAccount();
+}
 
