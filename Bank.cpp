@@ -166,7 +166,7 @@ void* ATM_Run(void* cmds) {
 	//Initialize variables:
 	ATM* atm = (ATM*)cmds;
 	stringstream cmdList;
-	ASSERT_VALID(cmdList, "File not found");
+	ASSERT_VALID(cmdList, "File not found");//FIXME add name
 	ASSERT_VALID(cmdList.good(), "File not found");
 	stringstream command;
 	string cmdLine;
@@ -182,7 +182,7 @@ void* ATM_Run(void* cmds) {
 			ASSERT_VALID(command >> sum, "Error in line format");//Cmd is open, deposit, or withdraw so add sum to command stream.
 		}
 		atmNumber = atm->_id;
-		isAccountCurrentlyInMap = bankAccountsMap.isAccountInMap(accountNumber);
+		isAccountCurrentlyInMap = bankAccountsMap.isAccountInMap(accountNumber);//FIXME what if we add later here?
 		if (opCode != 'O' && isAccountCurrentlyInMap == true) {//Then Open command is not expected
 			if (bankAccountsMap.checkPassword(accountNumber, password)) {//If not Open command, password needs to be correct
 				WRONG_PASSWORD(atmNumber, accountNumber);
@@ -205,7 +205,7 @@ void* ATM_Run(void* cmds) {
 					bankAccountsMap.openNewAccount(accountNumber, password, sum);
 					LOG_OPEN_NEW_ACCOUNT(atmNumber, accountNumber, password, sum);
 				} catch (AccountNumberAlreadyExistsException&) {
-					pthread_mutex_unlock(&map_lock);
+					pthread_mutex_unlock(&map_lock);//FIXME can happen, change
 					ACCOUNT_ALREADY_EXISTS_ILLEGALY();
 				} catch (...) {
 					pthread_mutex_unlock(&map_lock);
@@ -241,7 +241,7 @@ void* ATM_Run(void* cmds) {
 				bankAccountsMap.depositToAccount(accountNumber, password, sum);
 				LOG_DEPOSIT(atmNumber, accountNumber, password, sum);
 			} catch (WrongPasswordException&) {
-				WRONG_PASSWORD(atmNumber, accountNumber);
+				WRONG_PASSWORD(atmNumber, accountNumber);//FIXME illegally
 				continue;
 			} catch (AccountDoesntExistException&) {
 				ACCOUNT_DOESNT_EXIST_ILLEGALY();
@@ -256,7 +256,7 @@ void* ATM_Run(void* cmds) {
 				bankAccountsMap.withrawFromAccount(accountNumber, password, sum);
 				LOG_WITHDRAW(atmNumber, accountNumber, password, sum);
 			} catch (WrongPasswordException&) {
-				WRONG_PASSWORD(atmNumber, accountNumber);
+				WRONG_PASSWORD(atmNumber, accountNumber);//FIXME illegally
 				continue;
 			} catch (AccountDoesntExistException&) {
 				ACCOUNT_DOESNT_EXIST_ILLEGALY();
@@ -271,7 +271,7 @@ void* ATM_Run(void* cmds) {
 				balance = bankAccountsMap.getAccountBalance(accountNumber, password);
 				LOG_BALANCE(atmNumber, accountNumber, balance);
 			} catch (WrongPasswordException&) {
-				WRONG_PASSWORD(atmNumber, accountNumber);
+				WRONG_PASSWORD(atmNumber, accountNumber);//FIXME illegally
 				continue;
 			} catch (AccountDoesntExistException&) {
 				ACCOUNT_DOESNT_EXIST_ILLEGALY();
@@ -291,7 +291,7 @@ void* ATM_Run(void* cmds) {
 				int dstNewBalance = bankAccountsMap.transferGetBalance(dstAccountNumber);
 				LOG_TRANSFER(atmNumber, sum, accountNumber, dstAccountNumber, srcNewBalance, dstNewBalance);
 			} catch (WrongPasswordException&) {
-				WRONG_PASSWORD(atmNumber, accountNumber);
+				WRONG_PASSWORD(atmNumber, accountNumber);//FIXME illegally
 				continue;
 			} catch (AccountDoesntExistException&) {
 				ACCOUNT_DOESNT_EXIST_ILLEGALY();

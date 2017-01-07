@@ -106,7 +106,7 @@ void bankMap::depositToAccount(int accountNumber, int accountPass, int depositSu
 	if (this->isAccountInMap(accountNumber) == false) {
 		throw AccountDoesntExistException();
 	}
-	if(this->checkPassword(accountNumber, accountPass) == false) {
+	if(this->checkPassword(accountNumber, accountPass) == false || this->_innerMap[accountNumber].isAccountFrozen()) {
 		throw WrongPasswordException();
 	}
 	if(this->_innerMap[accountNumber].depositMoney(depositSum) == false) {
@@ -128,7 +128,7 @@ void bankMap::withrawFromAccount(int accountNumber, int accountPass, int withraw
 	if (this->isAccountInMap(accountNumber) == false) {
 		throw AccountDoesntExistException();
 	}
-	if(this->checkPassword(accountNumber, accountPass) == false) {
+	if(this->checkPassword(accountNumber, accountPass) == false || this->_innerMap[accountNumber].isAccountFrozen()) {
 		throw WrongPasswordException();
 	}
 	if(this->_innerMap[accountNumber].withrawMoney(withrawSum) == false) {
@@ -146,7 +146,7 @@ void bankMap::withrawFromAccount(int accountNumber, int accountPass, int withraw
  * 		NotEnoughMoneyException if balance not enough for transfer.
  * Print Requirements: On wrong password, on account doesn't exist, on not enough balance, on successful deposit.
  */
-void bankMap::transferMoney(int srcAccountNumber, int srcAccountPass, int destAccountNumber, int amount) {
+int bankMap::transferMoney(int srcAccountNumber, int srcAccountPass, int destAccountNumber, int amount) {
 	if (this->isAccountInMap(srcAccountNumber) == false || this->isAccountInMap(destAccountNumber) == false) {
 		throw AccountDoesntExistException();
 	}
@@ -155,7 +155,16 @@ void bankMap::transferMoney(int srcAccountNumber, int srcAccountPass, int destAc
 	}
 	//FIXME Make sure the functions match
 	this->_innerMap[srcAccountNumber].lockAccount();
+	if(this->_innerMap[srcAccountNumber].isAccountFrozen()) {
+		this->_innerMap[srcAccountNumber].unLockAccount();
+		return 1; //SRC is frozen
+	}
 	this->_innerMap[destAccountNumber].lockAccount();
+	if(this->_innerMap[destAccountNumber].isAccountFrozen()) {
+		this->_innerMap[srcAccountNumber].unLockAccount();
+		this->_innerMap[destAccountNumber].unLockAccount();
+		return 2; //DST is frozen
+	}
 	this->_innerMap[srcAccountNumber].transferWithdraw(amount);
 	this->_innerMap[destAccountNumber].transferDeposit(amount);
 	this->_innerMap[destAccountNumber].unLockAccount();
@@ -177,8 +186,10 @@ int bankMap::takeComission(int accountNumber, int percentage) {
 	}
 	//NEEDS TO BE ATOMIC IN bankAccount.cpp Note the percentage should be decided in bank.cpp and pass
 	//As an argument to this function, as well as to the bankAccount function TODO
-
-	return 0;
+	int currBalance = this->_innerMap[accountNumber].getBalance();
+	int commission = currBalance * percentage;
+	this->_innerMap[accountNumber].withrawMoney(commission);
+	return commission;
 }
 
 /*

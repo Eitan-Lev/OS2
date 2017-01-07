@@ -76,7 +76,6 @@ bool bankAccount::unFreeze() {
 }
 
 bool bankAccount::withrawMoney(int withrawSum) {
-	assert(isAccountFrozen() == false);
 	if (withrawSum > (this->getBalance())) {
 		return false;
 	} else {
