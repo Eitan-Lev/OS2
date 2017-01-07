@@ -70,7 +70,7 @@ public:
 	bool freeze();//False if already frozen, true otherwise
 	bool unFreeze();//False if already not frozen, true otherwise
 	bool withrawMoney(int withrawSum);//False if not enough money or account frozen, true otherwise
-	bool depositMoney(int depositSum);//False if sum causes unsigned int overflow or account frozen, true otherwise
+	int depositMoney(int depositSum);//False if sum causes unsigned int overflow or account frozen, true otherwise
 	void printAccount();//Is it possible it won't be printed continuously? //TODO
 	void lockAccount();//Use only for money transfer!
 	void unLockAccount();//Use only for money transfer!

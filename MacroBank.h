@@ -33,34 +33,42 @@ extern ofstream log_file;
 //Eitan macro FIXME
 //Macro:
 #define ASSERT_VALID(a, b) do {\
-	if (!a) { \
+	if (!(a)) { \
 		cout << b << endl; \
 	} \
-	assert(a); \
+	} while (0)
+
+#define PRINT_DETAILS_ILLEGALLY() do {\
+		cout << "account number: " << accountNumber << "cmdLine: " << cmdLine << endl; \
 	} while (0)
 
 #define UNEXPECTED_EXCEPTION() do {\
-		cout << "Unknown exception was thrown, no known handling at this point" << endl; \
+		cout << "Unknown exception was thrown, no known handling at this point. " << "atmThread: " << atmNumber << endl; \
+		PRINT_DETAILS_ILLEGALLY(); \
 		exit(ERROR_VALUE); \
 	} while (0)
 
 #define ACCOUNT_DOESNT_EXIST_ILLEGALY() do {\
-		cout << "AccountDoesntExistException has been thrown, no known handling at this point" << endl; \
+		cout << "AccountDoesntExistException has been thrown, no known handling at this point. " << "atmThread: " << atmNumber << endl; \
+		PRINT_DETAILS_ILLEGALLY(); \
 		exit(ERROR_VALUE); \
 	} while (0)
 
 #define ACCOUNT_ALREADY_EXISTS_ILLEGALY() do {\
-		cout << "AccountNumberAlreadyExistsException has been thrown, no known handling at this point" << endl; \
+		cout << "AccountNumberAlreadyExistsException has been thrown, no known handling at this point. " << "atmThread: " << atmNumber << endl; \
+		PRINT_DETAILS_ILLEGALLY(); \
 		exit(ERROR_VALUE); \
 	} while (0)
 
 #define WRONG_PASSWORD_ILLEGALY() do {\
-		cout << "WrongPasswordException has been thrown, no known handling at this point" << endl; \
+		cout << "WrongPasswordException has been thrown, no known handling at this point. " << "atmThread: " << atmNumber << endl; \
+		PRINT_DETAILS_ILLEGALLY(); \
 		exit(ERROR_VALUE); \
 	} while (0)
 
 #define BALANCE_OVERFLOW_ILLEGALY() do {\
-		cout << "BalanceOverflowException has been thrown, no known handling at this point" << endl; \
+		cout << "BalanceOverflowException has been thrown, no known handling at this point. " << "atmThread: " << atmNumber << endl; \
+		PRINT_DETAILS_ILLEGALLY(); \
 		exit(ERROR_VALUE); \
 	} while (0)
 

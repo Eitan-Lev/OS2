@@ -86,15 +86,17 @@ bool bankAccount::withrawMoney(int withrawSum) {
 	}
 }
 
-bool bankAccount::depositMoney(int depositSum) {
-	assert(((depositSum + this->_balance) > (this->getBalance()))  && (isAccountFrozen() == false));//make sure no overflow
-	if (((depositSum + this->_balance) < (this->getBalance())) || (isAccountFrozen() == true)) {//int overflow, Should never happen
-		return false;
+int bankAccount::depositMoney(int depositSum) {
+	int tmpBalance = this->getBalance();
+	if ((depositSum + tmpBalance) < tmpBalance) {//int overflow, Should never happen
+		return 2;//Overflow Failure
+	} else if (isAccountFrozen() == true) {
+		return 0;//Frozen Failure
 	} else {
 		pthread_mutex_lock(&write_balance_lock);
 		this->_balance += depositSum;
 		pthread_mutex_unlock(&write_balance_lock);
-		return true;
+		return 1;//Success
 	}
 }
 
@@ -105,11 +107,11 @@ void bankAccount::printAccount() {
 
 void bankAccount::lockAccount() {
 	pthread_mutex_lock(&write_balance_lock);
-	pthread_mutex_lock(&read_balance_lock);//Lock readers
+	//pthread_mutex_lock(&read_balance_lock);//Lock readers
 }
 
 void bankAccount::unLockAccount() {
-	pthread_mutex_unlock(&read_balance_lock);//Lock readers
+	//pthread_mutex_unlock(&read_balance_lock);//Lock readers
 	pthread_mutex_unlock(&write_balance_lock);
 }
 bool bankAccount::transferWithdraw(int withrawSum) {

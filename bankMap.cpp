@@ -7,6 +7,8 @@
 #include <ctime>
 #include <cstdlib>
 
+#include <stdio.h>//FIXME testing
+
 //TODO: Add a Macro for checking if the account exists and if the password is correct.
 
 /*
@@ -44,8 +46,7 @@ int bankMap::getAccountBalance(int accountNumber, int accountPass) {
 	if(this->checkPassword(accountNumber, accountPass == false)) {
 		throw WrongPasswordException();
 	}
-	//return ((this->_innerMap[accountNumber]).getBalance());//FIXME Amit: why?
-	return 0;
+	return (this->_innerMap[accountNumber]).getBalance();//FIXME Amit: why?
 }
 
 /*
@@ -109,9 +110,15 @@ void bankMap::depositToAccount(int accountNumber, int accountPass, int depositSu
 	if(this->checkPassword(accountNumber, accountPass) == false || this->_innerMap[accountNumber].isAccountFrozen()) {
 		throw WrongPasswordException();
 	}
-	if(this->_innerMap[accountNumber].depositMoney(depositSum) == false) {
+	int depositResult = this->_innerMap[accountNumber].depositMoney(depositSum);
+	if (depositResult == 0) {//Account is frozen
+		throw WrongPasswordException();
+	} else if (depositResult == 2) {//Balance overflow
 		throw BalanceOverflowException();
 	}
+	/*if(this->_innerMap[accountNumber].depositMoney(depositSum) == false) {
+		throw BalanceOverflowException();
+	}*/
 }
 
 /*
@@ -153,7 +160,11 @@ int bankMap::transferMoney(int srcAccountNumber, int srcAccountPass, int destAcc
 	if(this->checkPassword(srcAccountNumber, srcAccountPass) == false) {
 		throw WrongPasswordException();
 	}
-	//FIXME Make sure the functions match
+	if (srcAccountNumber == destAccountNumber) {
+		return 4;
+	}
+	//this->_innerMap[srcAccountNumber].transferWithdraw(amount);//FIXME testing
+	//this->_innerMap[destAccountNumber].transferDeposit(amount);//FIXME testing
 	this->_innerMap[srcAccountNumber].lockAccount();
 	if(this->_innerMap[srcAccountNumber].isAccountFrozen()) {
 		this->_innerMap[srcAccountNumber].unLockAccount();
@@ -165,10 +176,12 @@ int bankMap::transferMoney(int srcAccountNumber, int srcAccountPass, int destAcc
 		this->_innerMap[destAccountNumber].unLockAccount();
 		return 2; //DST is frozen
 	}
-	this->_innerMap[srcAccountNumber].transferWithdraw(amount);
+	printf("check transfer\n");//FIXME testing
+	this->_innerMap[srcAccountNumber].transferWithdraw(amount);//FIXME check enough money
 	this->_innerMap[destAccountNumber].transferDeposit(amount);
 	this->_innerMap[destAccountNumber].unLockAccount();
 	this->_innerMap[srcAccountNumber].unLockAccount();
+	return 0;
 }
 
 /*
@@ -187,7 +200,7 @@ int bankMap::takeComission(int accountNumber, int percentage) {
 	//NEEDS TO BE ATOMIC IN bankAccount.cpp Note the percentage should be decided in bank.cpp and pass
 	//As an argument to this function, as well as to the bankAccount function TODO
 	int currBalance = this->_innerMap[accountNumber].getBalance();
-	int commission = currBalance * percentage;
+	int commission = (currBalance * percentage)/100;
 	this->_innerMap[accountNumber].withrawMoney(commission);
 	return commission;
 }

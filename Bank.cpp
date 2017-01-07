@@ -37,7 +37,7 @@ ofstream log_file;
 class ATM {//TODO move to another file
 public:
 	int _id;
-	string commandsList;
+	char* commandsList;
 };
 
 //Functions used by the threads:
@@ -83,6 +83,7 @@ int main(int argc, char* argv[]) {
 			exit(ERROR_VALUE);
 		}
 	}
+	//cout << "Finished checking arguments " << __LINE__ << endl;
 	//================================================================
 	//Initialize locks:
 	pthread_mutex_init(&map_lock, NULL);
@@ -102,11 +103,19 @@ int main(int argc, char* argv[]) {
 	int atmCounter = 1;
 	for (int i = 0; i < ATMs_NUMBER; i++) {
 		ATM_Manage[i]._id = atmCounter++;
-		ATM_Manage[i].commandsList = string(argv[cmdsCounter++]);
+		//ATM_Manage[i].commandsList = string(argv[cmdsCounter++]);
+		ATM_Manage[i].commandsList = argv[cmdsCounter++];
 	}
+	//cout << "Finished init " << __LINE__ << endl;
 	//================================================================
 	//Create threads for ATM, commission and printing status:
 	int threadRes;
+	atmThreadRunning = true;
+	threadRes = pthread_create(&thread_Comission, NULL, Commission_Run, NULL);
+	if (threadRes != SUCCESS_VALUE) {
+		fprintf(stderr, "error: pthread_create, threadRes: %d\n", threadRes);
+		exit (ERROR_VALUE);
+	}
 	for (int i = 0; i < ATMs_NUMBER; i++) {
 		threadRes = pthread_create(&threads_ATM[i], NULL, ATM_Run, &ATM_Manage[i]);
 		if (threadRes != SUCCESS_VALUE) {
@@ -114,17 +123,12 @@ int main(int argc, char* argv[]) {
 			exit (ERROR_VALUE);
 		}
 	}
-	atmThreadRunning = true;
-	threadRes = pthread_create(&thread_Comission, NULL, Commission_Run, NULL);
-	if (threadRes != SUCCESS_VALUE) {
-		fprintf(stderr, "error: pthread_create, threadRes: %d\n", threadRes);
-		exit (ERROR_VALUE);
-	}
 	threadRes = pthread_create(&thread_Continuous_Print, NULL, Continuous_Print_Run, NULL);
 	if (threadRes != SUCCESS_VALUE) {
 		fprintf(stderr, "error: pthread_create, threadRes: %d\n", threadRes);
 		exit (ERROR_VALUE);
 	}
+	//cout << "Finished creating threads " << __LINE__ << endl;
 	//================================================================
 	//Join all ATM's:
 	for (int i = 0; i < ATMs_NUMBER; i++) {
@@ -151,6 +155,7 @@ int main(int argc, char* argv[]) {
 		printf("threadRes = %d \n", threadRes);
 	}
 	assert(threadRes == SUCCESS_VALUE);
+	//cout << "Finished joining threads " << __LINE__ << endl;
 	//================================================================
 	//Destroy locks, free pointers and close file:
 	log_file.close();
@@ -158,6 +163,7 @@ int main(int argc, char* argv[]) {
 	pthread_mutex_destroy(&bank_balance_lock);
 	pthread_mutex_destroy(&log_file_lock);
 	delete[] ATM_Manage;
+	//cout << "Finished destroying threads " << __LINE__ << endl;
 	return 0;
 }
 
@@ -165,36 +171,53 @@ void* ATM_Run(void* cmds) {
 	//================================================================
 	//Initialize variables:
 	ATM* atm = (ATM*)cmds;
+	//todo changed to ifstream to open file
+	/*std::ifstream file(atm->commandsList);
 	stringstream cmdList;
+	cmdList << file.rdbuf();
+    file.close();*/
+    std::ifstream cmdList(atm->commandsList);
+	//stringstream cmdList(atm->commandsList);
 	ASSERT_VALID(cmdList, "File not found");//FIXME add name
 	ASSERT_VALID(cmdList.good(), "File not found");
-	stringstream command;
 	string cmdLine;
 	int accountNumber, password, atmNumber, balance, sum, dstAccountNumber;
 	char opCode;
 	bool isAccountCurrentlyInMap;
 	//================================================================
 	while (getline(cmdList, cmdLine)) {
+		std::istringstream command(cmdLine);
+		//cout << "string cmdLine is " << cmdLine << " " << __LINE__ << endl;
+		//cout << "Entered command reading " << __LINE__ << endl;
 		//================================================================
 		//Define variables and initialize checks
 		ASSERT_VALID(command >> opCode >> accountNumber >> password, "Error in line format");//Add all arguments to command stream.
 		if (opCode == 'O' || opCode == 'D' || opCode == 'W') {
+			//cout << "Entered first if in getline" << __LINE__ << endl;
 			ASSERT_VALID(command >> sum, "Error in line format");//Cmd is open, deposit, or withdraw so add sum to command stream.
 		}
 		atmNumber = atm->_id;
+		pthread_mutex_lock(&map_lock);//FIXME for testing
 		isAccountCurrentlyInMap = bankAccountsMap.isAccountInMap(accountNumber);//FIXME what if we add later here?
+		pthread_mutex_unlock(&map_lock);
 		if (opCode != 'O' && isAccountCurrentlyInMap == true) {//Then Open command is not expected
-			if (bankAccountsMap.checkPassword(accountNumber, password)) {//If not Open command, password needs to be correct
+			//cout << "Entered second if in getline" << __LINE__ << endl;
+			if (!(bankAccountsMap.checkPassword(accountNumber, password))) {//If not Open command, password needs to be correct
+				//cout << "Entered internal if in if" << __LINE__ << endl;
+				//cout << "password is " << bankAccountsMap.getPassword(accountNumber) << endl;
 				WRONG_PASSWORD(atmNumber, accountNumber);
 				continue;
 			}
 		} else if (opCode != 'O' && isAccountCurrentlyInMap == false) {
+			//cout << "Entered else if getline. opcode is " << opCode << __LINE__ << endl;
 			LOG_ACCOUNT_DOESNT_EXIST(atmNumber, accountNumber);
 			continue;
 		}
+		//cout << "Finished preliminary checks " << __LINE__ << endl;
 		//================================================================
 		//Deal with each command:
 		if (opCode == 'O') {//Open Account
+			//cout << "Entered Open" << __LINE__ << endl;
 			if (isAccountCurrentlyInMap == true) {
 				LOG_ACCOUNT_ALREADY_EXISTS(atmNumber);
 				continue;
@@ -206,7 +229,8 @@ void* ATM_Run(void* cmds) {
 					LOG_OPEN_NEW_ACCOUNT(atmNumber, accountNumber, password, sum);
 				} catch (AccountNumberAlreadyExistsException&) {
 					pthread_mutex_unlock(&map_lock);//FIXME can happen, change
-					ACCOUNT_ALREADY_EXISTS_ILLEGALY();
+					//ACCOUNT_ALREADY_EXISTS_ILLEGALY();
+					LOG_ACCOUNT_ALREADY_EXISTS(atmNumber);
 				} catch (...) {
 					pthread_mutex_unlock(&map_lock);
 					UNEXPECTED_EXCEPTION();
@@ -239,7 +263,7 @@ void* ATM_Run(void* cmds) {
 			try	{
 				sleep(1);
 				bankAccountsMap.depositToAccount(accountNumber, password, sum);
-				LOG_DEPOSIT(atmNumber, accountNumber, password, sum);
+				LOG_DEPOSIT(atmNumber, accountNumber, bankAccountsMap.getAccountBalance(accountNumber,password), sum);
 			} catch (WrongPasswordException&) {
 				WRONG_PASSWORD(atmNumber, accountNumber);//FIXME illegally
 				continue;
@@ -254,7 +278,7 @@ void* ATM_Run(void* cmds) {
 			try	{
 				sleep(1);
 				bankAccountsMap.withrawFromAccount(accountNumber, password, sum);
-				LOG_WITHDRAW(atmNumber, accountNumber, password, sum);
+				LOG_WITHDRAW(atmNumber, accountNumber, bankAccountsMap.getAccountBalance(accountNumber,password), sum);
 			} catch (WrongPasswordException&) {
 				WRONG_PASSWORD(atmNumber, accountNumber);//FIXME illegally
 				continue;
@@ -279,14 +303,14 @@ void* ATM_Run(void* cmds) {
 				UNEXPECTED_EXCEPTION();
 			}
 		} else if (opCode == 'T') {//Transfer money between accounts
-			if (opCode == 'T') {
-				ASSERT_VALID(command >> dstAccountNumber >> sum, "Error in line format");//Cmd is transfer, deposit, or withdraw so add sum to command stream.
-			} else if (bankAccountsMap.isAccountInMap(dstAccountNumber) == false) {
+			ASSERT_VALID(command >> dstAccountNumber >> sum, "Error in line format");//Cmd is transfer, deposit, or withdraw so add sum to command stream.
+			if (bankAccountsMap.isAccountInMap(dstAccountNumber) == false) {
 				LOG_ACCOUNT_DOESNT_EXIST(atmNumber, dstAccountNumber);
+				continue;
 			}
 			try	{
 				sleep(1);
-				bankAccountsMap.transferMoney(accountNumber, password, dstAccountNumber, sum);
+				bankAccountsMap.transferMoney(accountNumber, password, dstAccountNumber, sum);//FIXME check return value
 				int srcNewBalance = bankAccountsMap.getAccountBalance(accountNumber, password);
 				int dstNewBalance = bankAccountsMap.transferGetBalance(dstAccountNumber);
 				LOG_TRANSFER(atmNumber, sum, accountNumber, dstAccountNumber, srcNewBalance, dstNewBalance);
@@ -299,7 +323,7 @@ void* ATM_Run(void* cmds) {
 				UNEXPECTED_EXCEPTION();
 			}
 		}
-		usleep(100000);//FIXME why? from Lior
+		usleep(100000);
 	}
 	pthread_exit(NULL);//FIXME why? from Lior
 	return NULL;
@@ -307,11 +331,10 @@ void* ATM_Run(void* cmds) {
 
 void* Commission_Run(void* cmds) {
 	commissionThreadRunning = true;
-	int commission, accountNumber;
-	double percentage;
+	int commission, accountNumber, percentage;
 	IteratorConst account;
 	while(atmThreadRunning) {
-		percentage = ((((rand())%(2)) + 2)/100);//y = rand, x = (y(mod2)+2)/100
+		percentage = ((((rand())%(2)) + 2));//y = rand, x = (y(mod2)+2)/100
 		for (account = bankAccountsMap.begin(); account != bankAccountsMap.end(); account++) {
 			accountNumber = account->first;
 			commission = bankAccountsMap.takeComission(accountNumber, percentage);
@@ -319,8 +342,8 @@ void* Commission_Run(void* cmds) {
 			BankBalance += commission;
 			pthread_mutex_unlock(&bank_balance_lock);
 			LOG_COMMISSION(percentage, commission, accountNumber);
-			sleep(3);//TODO why 3 seconds? from Lior
 		}
+		sleep(3); //Every 3 seconds commission is taken from all
 	}
 	commissionThreadRunning = false;
 	pthread_exit(NULL);//FIXME why? Lior
@@ -345,7 +368,7 @@ void* Continuous_Print_Run(void* cmds) {
 		pthread_mutex_lock(&bank_balance_lock); // no need for readers/writers because only 1 thread reading and only 1 thread writing
 		cout << "The Bank has " << BankBalance << " $" << endl;
 		pthread_mutex_unlock(&bank_balance_lock);
-		usleep(500000);//FIXME why? Lior
+		usleep(500000);
 	}
 	pthread_exit(NULL);//FIXME why? Lior
 	return NULL;
