@@ -10,8 +10,6 @@
 #include <unistd.h>//FIXME for testing
 #include <stdio.h>//FIXME testing
 
-//TODO: Add a Macro for checking if the account exists and if the password is correct.
-
 /*
  * ****openNewAccount****
  * Open a new account.
@@ -68,7 +66,7 @@ void bankMap::freezeAccount(int accountNumber, int accountPass) {
 	}
 	bool result = this->_innerMap[accountNumber].freeze();
 	if(result == false) {
-		//Undefined according to pdf. We should decide TODO
+		//Undefined according to pdf, so we do nothing, as this is "success".
 	}
 }
 
@@ -90,7 +88,7 @@ void bankMap::unFreezeAccount(int accountNumber, int accountPass) {
 	}
 	bool result = this->_innerMap[accountNumber].unFreeze();
 	if(result == false) {
-		//According to pdf do nothing. Do we want/need to know it wasn't frozen? TODO
+		//According to pdf do nothing. This is success.
 	}
 }
 
@@ -214,8 +212,6 @@ int bankMap::takeComission(int accountNumber, int percentage) {
 	if (this->isAccountInMap(accountNumber) == false) {
 		throw AccountDoesntExistException();
 	}
-	//NEEDS TO BE ATOMIC IN bankAccount.cpp Note the percentage should be decided in bank.cpp and pass
-	//As an argument to this function, as well as to the bankAccount function TODO Amit?
 	int currBalance = this->_innerMap[accountNumber].getBalance();
 	int commission = (currBalance * percentage)/100;
 	this->_innerMap[accountNumber].withrawMoney(commission);
