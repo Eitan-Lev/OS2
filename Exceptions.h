@@ -8,7 +8,7 @@
 #ifndef EXCEPTIONS_H_
 #define EXCEPTIONS_H_
 
-class OSException {};//TODO amit
+class OSException {};
 
 class BankAccountException : public OSException {};
 

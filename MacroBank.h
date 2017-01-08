@@ -25,17 +25,20 @@ using std::cout;
 using std::endl;
 using std::getline;
 
-extern pthread_mutex_t map_lock;
-extern pthread_mutex_t bank_balance_lock;
-extern pthread_mutex_t log_file_lock;
-extern ofstream log_file;
+/*
+ * Macros to use along the program.
+ * ASSERT_VALID: make sure everything works. Should never enter if, so exit if it does.
+ * LOG_"MACRO": print to log file as required.
+ * "MACRO"_ILLEGALLY: known exception was thrown, but it should have been thrown at this point. Debugging purposes.
+ * NOT_TRANSFER_FUNC_INIT: 	Used by bankAccount. Most function are considered readers of account_lock, only transfer is a writer.
+ * 							Called upon entering the account different functions.
+ * NOT_TRANSFER_FUNC_END: 	Called upon existing the account different functions.
+ */
 
-//Eitan macro FIXME
-//Macro:
 #define ASSERT_VALID(a, b) do {\
 	if (!(a)) { \
 		cout << b << endl; \
-		continue; \
+		exit(ERROR_VALUE); \
 	} \
 	} while (0)
 
@@ -134,12 +137,6 @@ extern ofstream log_file;
 		pthread_mutex_unlock(&log_file_lock); \
 	} while (0)
 
-#define LOG_STATUS(a, b, c, d) do {\
-		pthread_mutex_lock(&log_file_lock); \
-		log_file << a << ": New account id is " << b << " with password " << c << " and initial balance " << d << endl; \
-		pthread_mutex_unlock(&log_file_lock); \
-	} while (0)
-
 #define NOT_TRANSFER_FUNC_INIT() do {\
 		pthread_mutex_lock(&read_account_lock); \
 		readAccountCounter++; \
@@ -158,22 +155,5 @@ extern ofstream log_file;
 		pthread_mutex_unlock(&read_account_lock); \
 	} while (0)
 
-#define MAP_NOT_TRANSFER_INIT() do {\
-		pthread_mutex_lock(&read_transfer_lock); \
-		readTransferCounter++; \
-		if (readTransferCounter == 1) { \
-			pthread_mutex_lock(&write_transfer_lock); \
-		} \
-		pthread_mutex_unlock(&read_transfer_lock); \
-	} while (0)
-
-#define MAP_NOT_TRANSFER_END() do {\
-		pthread_mutex_lock(&read_transfer_lock); \
-		readTransferCounter--; \
-		if (readTransferCounter == 0) { \
-			pthread_mutex_unlock(&write_transfer_lock); \
-		} \
-		pthread_mutex_unlock(&read_transfer_lock); \
-	} while (0)
 
 #endif /* MACROBANK_H_ */

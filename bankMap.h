@@ -13,6 +13,13 @@
 #include "bankAccount.h"
 #include "Exceptions.h"
 
+#define TRANSFER_SUCCESSFUL 0
+#define FIRST_ACCOUNT_FROZEN 1
+#define SECOND_ACCOUNT_FROZEN 2
+#define SAME_ACCOUNT 3
+
+
+
 /*
  * In this file all the top level functions will be.
  * Any validation of password or otherwise is done here.
@@ -35,19 +42,17 @@ public:
 	int getAccountBalance(int accountNumber, int accountPass);
 	void freezeAccount(int accountNumber, int accountPass);
 	void unFreezeAccount(int accountNumber, int accountPass);
-	void depositToAccount(int accountNumber, int accountPass, int depositSum);//FIXME frozen
-	void withrawFromAccount(int accountNumber, int accountPass, int withrawSum);//FIXME frozen
-	int transferMoney(int srcAccountNumber, int srcAccountPass, int destAccountNumber, int amount);//FIXME frozen
+	void depositToAccount(int accountNumber, int accountPass, int depositSum);
+	void withrawFromAccount(int accountNumber, int accountPass, int withrawSum);
 	int transferMoneyAndSaveBalances(int srcAccountNumber, int srcAccountPass,
 			int destAccountNumber, int amount, int* srcBalance, int* dstBalance, int* frozenAccount);
 	int takeComission(int accountNumber, int percentage);
 	int getPassword(int accountNumber);
 	bool checkPassword(int accountNumber, int accountPass);
 	bool isAccountInMap(int accountNumber);
-	int transferGetBalance(int accountNumber);//Use only for money transfer!//TODO
-	void printAccountInMap(int accountNumber);//FIXME
-	IteratorConst begin();//FIXME
-	IteratorConst end();//FIXME
+	void printAccountInMap(int accountNumber);
+	IteratorConst begin();
+	IteratorConst end();
 };
 
 #endif /* BANK_MAP_H_ */
