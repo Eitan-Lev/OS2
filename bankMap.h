@@ -38,6 +38,8 @@ public:
 	void depositToAccount(int accountNumber, int accountPass, int depositSum);//FIXME frozen
 	void withrawFromAccount(int accountNumber, int accountPass, int withrawSum);//FIXME frozen
 	int transferMoney(int srcAccountNumber, int srcAccountPass, int destAccountNumber, int amount);//FIXME frozen
+	int transferMoneyAndSaveBalances(int srcAccountNumber, int srcAccountPass,
+			int destAccountNumber, int amount, int* srcBalance, int* dstBalance, int* frozenAccount);
 	int takeComission(int accountNumber, int percentage);
 	int getPassword(int accountNumber);
 	bool checkPassword(int accountNumber, int accountPass);

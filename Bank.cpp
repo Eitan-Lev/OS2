@@ -32,9 +32,13 @@ using std::getline;
 pthread_mutex_t map_lock;
 pthread_mutex_t bank_balance_lock;
 pthread_mutex_t log_file_lock;
+//pthread_mutex_t read_transfer_lock;//TODO
+//pthread_mutex_t write_transfer_lock;//TODO
+//int readTransferCounter = 0;//TODO
+//pthread_mutex_t tranfer_accounts_lock;//TODO
 ofstream log_file;
 
-class ATM {//TODO move to another file
+class ATM {
 public:
 	int _id;
 	char* commandsList;
@@ -47,6 +51,8 @@ void* ATM_Run(void* cmds);
 int BankBalance;
 bool atmThreadRunning;
 bool commissionThreadRunning;
+//int srcAccountTransfer;//TODO
+//int dstAccountTransfer;//TODO
 
 /*
  * In this file the threads will be managed- Init thread, ATM thread, Commission thread and Bank Status thread.
@@ -61,7 +67,7 @@ bool commissionThreadRunning;
  */
 
 //This is the map for the bank accounts:
-bankMap bankAccountsMap;//TODO beware of duplication
+bankMap bankAccountsMap;
 
 
 int main(int argc, char* argv[]) {
@@ -89,11 +95,16 @@ int main(int argc, char* argv[]) {
 	pthread_mutex_init(&map_lock, NULL);
 	pthread_mutex_init(&bank_balance_lock, NULL);
 	pthread_mutex_init(&log_file_lock, NULL);
+	//pthread_mutex_init(&read_transfer_lock, NULL);//TODO
+	//pthread_mutex_init(&write_transfer_lock, NULL);//TODO
+	//readTransferCounter = 0;//TODO
 	//================================================================
 	//Preparing all threads and data:
 	atmThreadRunning = false;
 	commissionThreadRunning = false;
 	BankBalance = 0;
+	//srcAccountTransfer = (-1);//TODO
+	//dstAccountTransfer = (-1);//TODO
 	log_file.open("log.txt");
  	pthread_t threads_ATM[ATMs_NUMBER];
 	pthread_t thread_Comission;
@@ -162,6 +173,8 @@ int main(int argc, char* argv[]) {
 	pthread_mutex_destroy(&map_lock);
 	pthread_mutex_destroy(&bank_balance_lock);
 	pthread_mutex_destroy(&log_file_lock);
+	//pthread_mutex_destroy(&read_transfer_lock);//TODO
+	//pthread_mutex_destroy(&write_transfer_lock);//TODO
 	delete[] ATM_Manage;
 	//cout << "Finished destroying threads " << __LINE__ << endl;
 	return 0;
@@ -178,7 +191,7 @@ void* ATM_Run(void* cmds) {
     file.close();*/
     std::ifstream cmdList(atm->commandsList);
 	//stringstream cmdList(atm->commandsList);
-	ASSERT_VALID(cmdList, "File not found");//FIXME add name
+	ASSERT_VALID(cmdList, "File not found");
 	ASSERT_VALID(cmdList.good(), "File not found");
 	string cmdLine;
 	int accountNumber, password, atmNumber, balance, sum, dstAccountNumber;
@@ -205,7 +218,7 @@ void* ATM_Run(void* cmds) {
 			if (!(bankAccountsMap.checkPassword(accountNumber, password))) {//If not Open command, password needs to be correct
 				//cout << "Entered internal if in if" << __LINE__ << endl;
 				//cout << "password is " << bankAccountsMap.getPassword(accountNumber) << endl;
-				WRONG_PASSWORD(atmNumber, accountNumber);
+				LOG_WRONG_PASSWORD(atmNumber, accountNumber);
 				continue;
 			}
 		} else if (opCode != 'O' && isAccountCurrentlyInMap == false) {
@@ -220,7 +233,7 @@ void* ATM_Run(void* cmds) {
 			//cout << "Entered Open" << __LINE__ << endl;
 			if (isAccountCurrentlyInMap == true) {
 				LOG_ACCOUNT_ALREADY_EXISTS(atmNumber);
-				continue;
+				//continue;//TODO don't skip usleep
 			} else {
 				pthread_mutex_lock(&map_lock); // not allowing two ATMs to add the same account - atomic check&add
 				sleep(1);
@@ -228,8 +241,7 @@ void* ATM_Run(void* cmds) {
 					bankAccountsMap.openNewAccount(accountNumber, password, sum);
 					LOG_OPEN_NEW_ACCOUNT(atmNumber, accountNumber, password, sum);
 				} catch (AccountNumberAlreadyExistsException&) {
-					pthread_mutex_unlock(&map_lock);//FIXME can happen, change
-					//ACCOUNT_ALREADY_EXISTS_ILLEGALY();
+					pthread_mutex_unlock(&map_lock);
 					LOG_ACCOUNT_ALREADY_EXISTS(atmNumber);
 				} catch (...) {
 					pthread_mutex_unlock(&map_lock);
@@ -237,7 +249,38 @@ void* ATM_Run(void* cmds) {
 				}
 				pthread_mutex_unlock(&map_lock);
 			}
-		} else if (opCode == 'L') {//Freeze account
+		}  else if (opCode == 'T') {//Transfer money between accounts
+			ASSERT_VALID(command >> dstAccountNumber >> sum, "Error in line format");//Cmd is transfer, deposit, or withdraw so add sum to command stream.
+			//pthread_mutex_lock(&map_lock);//FIXME for testing
+			sleep(1);
+			bool isDstCurrentlyInMap = bankAccountsMap.isAccountInMap(dstAccountNumber);//FIXME what if we add later here?
+			//pthread_mutex_unlock(&map_lock);
+			if (isDstCurrentlyInMap == false) {
+				LOG_ACCOUNT_DOESNT_EXIST(atmNumber, dstAccountNumber);
+				continue;
+			}
+			try	{
+				int srcNewBalance = 0, dstNewBalance = 0, frozenAccount = (-1);
+				//pthread_mutex_lock(&write_transfer_lock);//FIXME
+				int resTransfer = bankAccountsMap.transferMoneyAndSaveBalances(accountNumber, password,
+						dstAccountNumber, sum, &srcNewBalance, &dstNewBalance, &frozenAccount);
+				//pthread_mutex_unlock(&write_transfer_lock);
+				if (resTransfer != 0) {
+					LOG_WRONG_PASSWORD(atmNumber, frozenAccount);
+				} else {
+					LOG_TRANSFER(atmNumber, sum, accountNumber, dstAccountNumber, srcNewBalance, dstNewBalance);
+				}
+			} catch (WrongPasswordException&) {
+				WRONG_PASSWORD_ILLEGALY();
+			} catch (AccountDoesntExistException&) {
+				ACCOUNT_DOESNT_EXIST_ILLEGALY();
+			} catch (...) {
+				UNEXPECTED_EXCEPTION();
+			}
+		} else {
+			//MAP_NOT_TRANSFER_INIT();//FIXME
+		}
+		if (opCode == 'L') {//Freeze account
 			sleep(1);
 			try {
 				bankAccountsMap.freezeAccount(accountNumber, password);
@@ -260,13 +303,14 @@ void* ATM_Run(void* cmds) {
 				UNEXPECTED_EXCEPTION();
 			}
 		} else if (opCode == 'D') {//Deposit
+			sleep(1);
 			try	{
-				sleep(1);
 				bankAccountsMap.depositToAccount(accountNumber, password, sum);
 				LOG_DEPOSIT(atmNumber, accountNumber, bankAccountsMap.getAccountBalance(accountNumber,password), sum);
 			} catch (WrongPasswordException&) {
-				WRONG_PASSWORD(atmNumber, accountNumber);//FIXME illegally
-				continue;
+				//WRONG_PASSWORD(atmNumber, accountNumber);//FIXME illegally
+				WRONG_PASSWORD_ILLEGALY();//FIXME illegally
+				//continue;
 			} catch (AccountDoesntExistException&) {
 				ACCOUNT_DOESNT_EXIST_ILLEGALY();
 			} catch (BalanceOverflowException&) {
@@ -275,13 +319,14 @@ void* ATM_Run(void* cmds) {
 				UNEXPECTED_EXCEPTION();
 			}
 		} else if (opCode == 'W') {//Withdraw
+			sleep(1);
 			try	{
-				sleep(1);
 				bankAccountsMap.withrawFromAccount(accountNumber, password, sum);
 				LOG_WITHDRAW(atmNumber, accountNumber, bankAccountsMap.getAccountBalance(accountNumber,password), sum);
 			} catch (WrongPasswordException&) {
-				WRONG_PASSWORD(atmNumber, accountNumber);//FIXME illegally
-				continue;
+				//WRONG_PASSWORD(atmNumber, accountNumber);//FIXME illegally
+				WRONG_PASSWORD_ILLEGALY();//FIXME illegally
+				//continue;
 			} catch (AccountDoesntExistException&) {
 				ACCOUNT_DOESNT_EXIST_ILLEGALY();
 			} catch (NotEnoughMoneyException&) {
@@ -290,39 +335,24 @@ void* ATM_Run(void* cmds) {
 				UNEXPECTED_EXCEPTION();
 			}
 		} else if (opCode == 'B') {//Check Balance
+			sleep(1);
 			try	{
-				sleep(1);
 				balance = bankAccountsMap.getAccountBalance(accountNumber, password);
 				LOG_BALANCE(atmNumber, accountNumber, balance);
 			} catch (WrongPasswordException&) {
-				WRONG_PASSWORD(atmNumber, accountNumber);//FIXME illegally
-				continue;
+				//WRONG_PASSWORD(atmNumber, accountNumber);//FIXME illegally
+				WRONG_PASSWORD_ILLEGALY();//FIXME illegally
+				//continue;
 			} catch (AccountDoesntExistException&) {
 				ACCOUNT_DOESNT_EXIST_ILLEGALY();
 			} catch (...) {
 				UNEXPECTED_EXCEPTION();
 			}
-		} else if (opCode == 'T') {//Transfer money between accounts
-			ASSERT_VALID(command >> dstAccountNumber >> sum, "Error in line format");//Cmd is transfer, deposit, or withdraw so add sum to command stream.
-			if (bankAccountsMap.isAccountInMap(dstAccountNumber) == false) {
-				LOG_ACCOUNT_DOESNT_EXIST(atmNumber, dstAccountNumber);
-				continue;
-			}
-			try	{
-				sleep(1);
-				bankAccountsMap.transferMoney(accountNumber, password, dstAccountNumber, sum);//FIXME check return value
-				int srcNewBalance = bankAccountsMap.getAccountBalance(accountNumber, password);
-				int dstNewBalance = bankAccountsMap.transferGetBalance(dstAccountNumber);
-				LOG_TRANSFER(atmNumber, sum, accountNumber, dstAccountNumber, srcNewBalance, dstNewBalance);
-			} catch (WrongPasswordException&) {
-				WRONG_PASSWORD(atmNumber, accountNumber);//FIXME illegally
-				continue;
-			} catch (AccountDoesntExistException&) {
-				ACCOUNT_DOESNT_EXIST_ILLEGALY();
-			} catch (...) {
-				UNEXPECTED_EXCEPTION();
-			}
-		}
+		} /*else {
+			usleep(100000);//Open or Transfer
+			continue;
+		}*///FIXME not needed if no readers/writers on transfer
+		//MAP_NOT_TRANSFER_END();//Not Open nor Transfer//FIXME
 		usleep(100000);
 	}
 	pthread_exit(NULL);//FIXME why? from Lior
@@ -359,7 +389,6 @@ void* Continuous_Print_Run(void* cmds) {
 		}
 		printf("\033[2J");
 		printf("\033[1;1H");
-		//cout << "\033[2J" << "\033[1;1H";//FIXME
 		cout << "Current Bank Status" << endl;
 		for (account = bankAccountsMap.begin(); account != bankAccountsMap.end(); account++) {
 			accountNumber = account->first;

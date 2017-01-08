@@ -35,6 +35,7 @@ extern ofstream log_file;
 #define ASSERT_VALID(a, b) do {\
 	if (!(a)) { \
 		cout << b << endl; \
+		continue; \
 	} \
 	} while (0)
 
@@ -78,7 +79,7 @@ extern ofstream log_file;
 		pthread_mutex_unlock(&log_file_lock); \
 	} while (0)
 
-#define WRONG_PASSWORD(a, b) do {\
+#define LOG_WRONG_PASSWORD(a, b) do {\
 		pthread_mutex_lock(&log_file_lock); \
 		log_file << "Error " << a << ": Your transaction failed - password for account id " << b << " is incorrect" << endl; \
 		pthread_mutex_unlock(&log_file_lock); \
@@ -139,6 +140,40 @@ extern ofstream log_file;
 		pthread_mutex_unlock(&log_file_lock); \
 	} while (0)
 
+#define NOT_TRANSFER_FUNC_INIT() do {\
+		pthread_mutex_lock(&read_account_lock); \
+		readAccountCounter++; \
+		if (readAccountCounter == 1) { \
+			pthread_mutex_lock(&write_account_lock); \
+		} \
+		pthread_mutex_unlock(&read_account_lock); \
+	} while (0)
 
+#define NOT_TRANSFER_FUNC_END() do {\
+		pthread_mutex_lock(&read_account_lock); \
+		readAccountCounter--; \
+		if (readAccountCounter == 0) { \
+			pthread_mutex_unlock(&write_account_lock); \
+		} \
+		pthread_mutex_unlock(&read_account_lock); \
+	} while (0)
+
+#define MAP_NOT_TRANSFER_INIT() do {\
+		pthread_mutex_lock(&read_transfer_lock); \
+		readTransferCounter++; \
+		if (readTransferCounter == 1) { \
+			pthread_mutex_lock(&write_transfer_lock); \
+		} \
+		pthread_mutex_unlock(&read_transfer_lock); \
+	} while (0)
+
+#define MAP_NOT_TRANSFER_END() do {\
+		pthread_mutex_lock(&read_transfer_lock); \
+		readTransferCounter--; \
+		if (readTransferCounter == 0) { \
+			pthread_mutex_unlock(&write_transfer_lock); \
+		} \
+		pthread_mutex_unlock(&read_transfer_lock); \
+	} while (0)
 
 #endif /* MACROBANK_H_ */

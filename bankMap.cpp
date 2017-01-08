@@ -100,7 +100,7 @@ void bankMap::unFreezeAccount(int accountNumber, int accountPass) {
  * Error Values:
  * 		AccountDoesntExistException if account doesn't exist in map.
  * 		WrongPasswordException if password is not the correct one.
- * 		BalanceOverflowException if deposit causes int balance overflow. //TODO do you really think it is possible?
+ * 		BalanceOverflowException if deposit causes int balance overflow.
  * Print Requirements: On wrong password, on account doesn't exist, on successful deposit.
  */
 void bankMap::depositToAccount(int accountNumber, int accountPass, int depositSum) {
@@ -138,8 +138,11 @@ void bankMap::withrawFromAccount(int accountNumber, int accountPass, int withraw
 	if(this->checkPassword(accountNumber, accountPass) == false || this->_innerMap[accountNumber].isAccountFrozen()) {
 		throw WrongPasswordException();
 	}
-	if(this->_innerMap[accountNumber].withrawMoney(withrawSum) == false) {
+	int resWithdraw = this->_innerMap[accountNumber].withrawMoney(withrawSum);
+	if(resWithdraw == 0) {//Not enough money
 		throw NotEnoughMoneyException();
+	} else if(resWithdraw == 4) {//Frozen
+		throw WrongPasswordException();
 	}
 }
 
@@ -168,7 +171,7 @@ int bankMap::transferMoney(int srcAccountNumber, int srcAccountPass, int destAcc
 	this->_innerMap[srcAccountNumber].lockAccount();
 	if(this->_innerMap[srcAccountNumber].isAccountFrozen()) {
 		this->_innerMap[srcAccountNumber].unLockAccount();
-		return 1; //SRC is frozen
+		return srcAccountNumber; //SRC is frozen
 	}
 	this->_innerMap[destAccountNumber].lockAccount();
 	if(this->_innerMap[destAccountNumber].isAccountFrozen()) {
@@ -180,6 +183,69 @@ int bankMap::transferMoney(int srcAccountNumber, int srcAccountPass, int destAcc
 	this->_innerMap[srcAccountNumber].transferWithdraw(amount);//FIXME check enough money
 	this->_innerMap[destAccountNumber].transferDeposit(amount);
 	this->_innerMap[destAccountNumber].unLockAccount();
+	this->_innerMap[srcAccountNumber].unLockAccount();
+	return 0;
+}
+
+int bankMap::transferMoneyAndSaveBalances(int srcAccountNumber, int srcAccountPass,
+		int dstAccountNumber, int amount, int* srcBalance, int* dstBalance, int* frozenAccount) {
+	if (this->isAccountInMap(srcAccountNumber) == false || this->isAccountInMap(dstAccountNumber) == false) {
+		throw AccountDoesntExistException();
+	} else if (this->checkPassword(srcAccountNumber, srcAccountPass) == false) {
+		throw WrongPasswordException();
+	} else if (this->_innerMap[srcAccountNumber].isAccountFrozen() == false) {
+		*frozenAccount = srcAccountNumber;
+		return 1; //SRC is frozen
+	} else if (this->_innerMap[dstAccountNumber].isAccountFrozen() == false) {
+		*frozenAccount = dstAccountNumber;
+		return 2; //DST is frozen
+	} else if (srcAccountNumber == dstAccountNumber) {
+		*srcBalance = this->_innerMap[srcAccountNumber].getBalance();
+		*dstBalance = *srcBalance;
+		return (-1);//Same account. Legal, but acknowledge this
+	}
+	/*pthread_mutex_lock(&( this->_innerMap[srcAccountNumber].write_balance_lock));
+	pthread_mutex_lock(&( this->_innerMap[dstAccountNumber].write_balance_lock));
+	this->_innerMap[srcAccountNumber].transferWithdraw(amount);//FIXME check enough money
+	this->_innerMap[dstAccountNumber].transferDeposit(amount);
+	pthread_mutex_unlock(&( this->_innerMap[dstAccountNumber].write_balance_lock));
+	pthread_mutex_unlock(&( this->_innerMap[srcAccountNumber].write_balance_lock));*/
+	this->_innerMap[srcAccountNumber].lockAccount();
+	if(this->_innerMap[srcAccountNumber].transferIsFrozen()) {
+		*frozenAccount = srcAccountNumber;
+		this->_innerMap[srcAccountNumber].unLockAccount();
+		return 1; //SRC is frozen
+	}
+	this->_innerMap[dstAccountNumber].lockAccount();
+	if(this->_innerMap[dstAccountNumber].transferIsFrozen()) {
+		this->_innerMap[srcAccountNumber].unLockAccount();
+		this->_innerMap[dstAccountNumber].unLockAccount();
+		*frozenAccount = dstAccountNumber;
+		return 2; //DST is frozen
+	}
+	/*this->_innerMap[srcAccountNumber].transferWithdraw(amount);//FIXME testing
+	this->_innerMap[dstAccountNumber].transferDeposit(amount);//FIXME testing
+	*srcBalance = this->_innerMap[srcAccountNumber].transferCheckBalance();
+	*dstBalance = this->_innerMap[dstAccountNumber].transferCheckBalance();*/
+	/*this->_innerMap[srcAccountNumber].lockAccount();
+	if(this->_innerMap[srcAccountNumber].isAccountFrozen()) {
+		this->_innerMap[srcAccountNumber].unLockAccount();
+		return 1; //SRC is frozen
+	}
+	this->_innerMap[dstAccountNumber].lockAccount();
+	if(this->_innerMap[dstAccountNumber].isAccountFrozen()) {
+		this->_innerMap[srcAccountNumber].unLockAccount();
+		this->_innerMap[dstAccountNumber].unLockAccount();
+		return 2; //DST is frozen
+	}*/
+	//printf("check transfer 2\n");//FIXME testing
+	//this->_innerMap[srcAccountNumber].lockAccount();
+	//this->_innerMap[dstAccountNumber].lockAccount();
+	this->_innerMap[srcAccountNumber].transferWithdraw(amount);//FIXME check enough money
+	this->_innerMap[dstAccountNumber].transferDeposit(amount);
+	*srcBalance = this->_innerMap[srcAccountNumber].transferCheckBalance();
+	*dstBalance = this->_innerMap[dstAccountNumber].transferCheckBalance();
+	this->_innerMap[dstAccountNumber].unLockAccount();
 	this->_innerMap[srcAccountNumber].unLockAccount();
 	return 0;
 }
