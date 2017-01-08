@@ -27,6 +27,26 @@ int bankAccount::getBalance() {
 	if (readBalanceCounter == 1) {//First reader
 		pthread_mutex_lock(&write_balance_lock);
 	}
+	sleep(1);
+	pthread_mutex_unlock(&read_balance_lock);//Unlock readers
+	int currentBalance = _balance;//No need to be locked, all readers can pull together. Writers are locked.
+	pthread_mutex_lock(&read_balance_lock);//Lock readers
+	readBalanceCounter--;//Indicate 1 less thread is reading
+	if (readBalanceCounter == 0) {//Last to read
+		pthread_mutex_unlock(&write_balance_lock);
+	}
+	pthread_mutex_unlock(&read_balance_lock);//Unlock readers
+	NOT_TRANSFER_FUNC_END();
+	return currentBalance;
+}
+
+int bankAccount::getBalanceNoSleep() {
+	NOT_TRANSFER_FUNC_INIT();
+	pthread_mutex_lock(&read_balance_lock);//Lock readers
+	readBalanceCounter++;//Indicate 1 more thread is reading
+	if (readBalanceCounter == 1) {//First reader
+		pthread_mutex_lock(&write_balance_lock);
+	}
 	pthread_mutex_unlock(&read_balance_lock);//Unlock readers
 	int currentBalance = _balance;//No need to be locked, all readers can pull together. Writers are locked.
 	pthread_mutex_lock(&read_balance_lock);//Lock readers
@@ -86,57 +106,78 @@ bool bankAccount::unFreeze() {
 }
 
 int bankAccount::withrawMoney(int withrawSum) {
-	int balance = this->getBalance();
-	int resVar;
-	if (withrawSum > balance) {
-		resVar = ACCOUNT_NOT_ENOUGH_MONEY;
-	} else {
-		NOT_TRANSFER_FUNC_INIT();
-		pthread_mutex_lock(&read_freeze_lock);//Lock readers
-		readFreezeCounter++;//Indicate 1 more thread is reading
-		if (readFreezeCounter == 1) {//First reader
-			pthread_mutex_lock(&write_freeze_lock);
-		}
-		pthread_mutex_unlock(&read_freeze_lock);
-		if (this->_isFrozen == true) {
-			resVar = ACCOUNT_FROZEN;
-		} else {
-			pthread_mutex_lock(&write_balance_lock);
-			this->_balance -= withrawSum;
-			pthread_mutex_unlock(&write_balance_lock);
-			resVar = ACCOUNT_SUCCESS;
-		}
-		pthread_mutex_lock(&read_freeze_lock);//Lock readers
-		readFreezeCounter--;//Indicate 1 less thread is reading
-		if (readFreezeCounter == 0) {//Last to read
-			pthread_mutex_unlock(&write_freeze_lock);
-		}
-		pthread_mutex_unlock(&read_freeze_lock);//Unlock readers
-		NOT_TRANSFER_FUNC_END();
-	}
-	return resVar;
-}
-
-int bankAccount::depositMoney(int depositSum) {
-	int tmpBalance = this->getBalance();
-	if ((depositSum + tmpBalance) < tmpBalance) {//int overflow, Should never happen
-		return ACCOUNT_BALANCE_OVERFLOW;//Overflow Failure
-	}
-	int resVar;
+	int tmpBalance, resVar;
 	NOT_TRANSFER_FUNC_INIT();
 	pthread_mutex_lock(&read_freeze_lock);//Lock readers
 	readFreezeCounter++;//Indicate 1 more thread is reading
 	if (readFreezeCounter == 1) {//First reader
 		pthread_mutex_lock(&write_freeze_lock);
 	}
+	sleep(1);
 	pthread_mutex_unlock(&read_freeze_lock);
 	if (this->_isFrozen == true) {
 		resVar = ACCOUNT_FROZEN;
 	} else {
 		pthread_mutex_lock(&write_balance_lock);
-		this->_balance += depositSum;
+		tmpBalance = this->_balance;
+		if (withrawSum > tmpBalance) {
+			resVar = ACCOUNT_NOT_ENOUGH_MONEY;
+		} else {
+			this->_balance -= withrawSum;
+			resVar = ACCOUNT_SUCCESS;
+		}
+		//this->_balance -= withrawSum;
 		pthread_mutex_unlock(&write_balance_lock);
-		resVar = ACCOUNT_SUCCESS;
+		//resVar = ACCOUNT_SUCCESS;
+	}
+	pthread_mutex_lock(&read_freeze_lock);//Lock readers
+	readFreezeCounter--;//Indicate 1 less thread is reading
+	if (readFreezeCounter == 0) {//Last to read
+		pthread_mutex_unlock(&write_freeze_lock);
+	}
+	pthread_mutex_unlock(&read_freeze_lock);//Unlock readers
+	NOT_TRANSFER_FUNC_END();
+	return resVar;
+}
+
+int bankAccount::withrawMoneyForCommission(int percentage) {
+	NOT_TRANSFER_FUNC_INIT();
+	int commission;
+	pthread_mutex_lock(&write_balance_lock);
+	commission = (this->_balance * percentage)/100;
+	if (commission > this->_balance) {//Should never happen. For debugging.
+		exit(ERROR_VALUE);
+	}
+	this->_balance -= commission;
+	pthread_mutex_unlock(&write_balance_lock);
+	NOT_TRANSFER_FUNC_END();
+	return commission;
+}
+
+int bankAccount::depositMoney(int depositSum) {
+	int tmpBalance, resVar;
+	NOT_TRANSFER_FUNC_INIT();
+	pthread_mutex_lock(&read_freeze_lock);//Lock readers
+	readFreezeCounter++;//Indicate 1 more thread is reading
+	if (readFreezeCounter == 1) {//First reader
+		pthread_mutex_lock(&write_freeze_lock);
+	}
+	sleep(1);
+	pthread_mutex_unlock(&read_freeze_lock);
+	if (this->_isFrozen == true) {
+		resVar = ACCOUNT_FROZEN;
+	} else {
+		pthread_mutex_lock(&write_balance_lock);
+		tmpBalance = this->_balance;
+		if ((depositSum + tmpBalance) < tmpBalance) {//int overflow, Should never happen
+			resVar = ACCOUNT_BALANCE_OVERFLOW;//Overflow Failure
+		} else {
+			this->_balance += depositSum;
+			resVar = ACCOUNT_SUCCESS;
+		}
+		//this->_balance += depositSum;
+		pthread_mutex_unlock(&write_balance_lock);
+		//resVar = ACCOUNT_SUCCESS;
 	}
 	pthread_mutex_lock(&read_freeze_lock);//Lock readers
 	readFreezeCounter--;//Indicate 1 less thread is reading
@@ -149,9 +190,21 @@ int bankAccount::depositMoney(int depositSum) {
 }
 
 void bankAccount::printAccount() {
-	int balance = this->getBalance();
 	NOT_TRANSFER_FUNC_INIT();
-	cout << "Account " << this->_id << ": Balance - " << balance <<
+	pthread_mutex_lock(&read_balance_lock);//Lock readers
+	readBalanceCounter++;//Indicate 1 more thread is reading
+	if (readBalanceCounter == 1) {//First reader
+		pthread_mutex_lock(&write_balance_lock);
+	}
+	pthread_mutex_unlock(&read_balance_lock);//Unlock readers
+	int currentBalance = this->_balance;//No need to be locked, all readers can pull together. Writers are locked.
+	pthread_mutex_lock(&read_balance_lock);//Lock readers
+	readBalanceCounter--;//Indicate 1 less thread is reading
+	if (readBalanceCounter == 0) {//Last to read
+		pthread_mutex_unlock(&write_balance_lock);
+	}
+	pthread_mutex_unlock(&read_balance_lock);//Unlock readers
+	cout << "Account " << this->_id << ": Balance - " << currentBalance <<
 			"$ , Account Password - " << this->_password << endl;
 	NOT_TRANSFER_FUNC_END();
 }
@@ -172,7 +225,7 @@ bool bankAccount::transferWithdraw(int withrawSum) {
 	}
 }
 
-bool bankAccount::transferDeposit(int depositSum) {//TODO assert happened once
+bool bankAccount::transferDeposit(int depositSum) {
 	if ((depositSum + this->_balance) < (this->_balance)) {//int overflow, Should never happen, for debugging.
 		std::cout << "Overflow" << std::endl;
 		exit(ERROR_VALUE);

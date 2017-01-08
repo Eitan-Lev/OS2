@@ -7,8 +7,7 @@
 #include <ctime>
 #include <cstdlib>
 
-#include <unistd.h>//FIXME for testing
-#include <stdio.h>//FIXME testing
+#include <unistd.h>
 
 /*
  * ****openNewAccount****
@@ -45,7 +44,7 @@ int bankMap::getAccountBalance(int accountNumber, int accountPass) {
 	if(this->checkPassword(accountNumber, accountPass == false)) {
 		throw WrongPasswordException();
 	}
-	return (this->_innerMap[accountNumber]).getBalance();
+	return this->_innerMap[accountNumber].getBalance();
 }
 
 /*
@@ -65,9 +64,6 @@ void bankMap::freezeAccount(int accountNumber, int accountPass) {
 		throw WrongPasswordException();
 	}
 	bool result = this->_innerMap[accountNumber].freeze();
-	if(result == false) {
-		//Undefined according to pdf, so we do nothing, as this is "success".
-	}
 }
 
 /*
@@ -87,9 +83,6 @@ void bankMap::unFreezeAccount(int accountNumber, int accountPass) {
 		throw WrongPasswordException();
 	}
 	bool result = this->_innerMap[accountNumber].unFreeze();
-	if(result == false) {
-		//According to pdf do nothing. This is success.
-	}
 }
 
 /*
@@ -105,8 +98,7 @@ void bankMap::unFreezeAccount(int accountNumber, int accountPass) {
 void bankMap::depositToAccount(int accountNumber, int accountPass, int depositSum) {
 	if (this->isAccountInMap(accountNumber) == false) {
 		throw AccountDoesntExistException();
-	}
-	if(this->checkPassword(accountNumber, accountPass) == false || this->_innerMap[accountNumber].isAccountFrozen()) {
+	} else if(this->checkPassword(accountNumber, accountPass) == false) {
 		throw WrongPasswordException();
 	}
 	int depositResult = this->_innerMap[accountNumber].depositMoney(depositSum);
@@ -130,8 +122,7 @@ void bankMap::depositToAccount(int accountNumber, int accountPass, int depositSu
 void bankMap::withrawFromAccount(int accountNumber, int accountPass, int withrawSum) {
 	if (this->isAccountInMap(accountNumber) == false) {
 		throw AccountDoesntExistException();
-	}
-	if(this->checkPassword(accountNumber, accountPass) == false || this->_innerMap[accountNumber].isAccountFrozen()) {
+	} else if(this->checkPassword(accountNumber, accountPass) == false) {
 		throw WrongPasswordException();
 	}
 	int resWithdraw = this->_innerMap[accountNumber].withrawMoney(withrawSum);
@@ -164,12 +155,9 @@ int bankMap::transferMoneyAndSaveBalances(int srcAccountNumber, int srcAccountPa
 	int firstAccount = (srcAccountNumber >= dstAccountNumber) ? dstAccountNumber : srcAccountNumber;//To prevent deadlocks
 	int secondAccount = (srcAccountNumber >= dstAccountNumber) ? srcAccountNumber : dstAccountNumber;//To prevent deadlocks
 	this->_innerMap[firstAccount].lockAccount();
-	printf("first account: %d \n", firstAccount);//TODO
-	sleep(3);//FIXME for testing
 	if(this->_innerMap[firstAccount].transferIsFrozen()) {
 		*frozenAccount = firstAccount;
 		this->_innerMap[firstAccount].unLockAccount();
-		printf("unlocked src account\n");//TODO
 		return FIRST_ACCOUNT_FROZEN; //first is frozen
 	}
 	if (srcAccountNumber == dstAccountNumber) {//Definitely not frozen
@@ -179,23 +167,24 @@ int bankMap::transferMoneyAndSaveBalances(int srcAccountNumber, int srcAccountPa
 		return SAME_ACCOUNT;//Same account. Legal, but acknowledge this
 	}
 	this->_innerMap[secondAccount].lockAccount();
-	printf("secondAccount: %d \n", firstAccount);//TODO
-	sleep(5);//FIXME for testing
+	sleep(1);
 	if(this->_innerMap[secondAccount].transferIsFrozen()) {
 		this->_innerMap[firstAccount].unLockAccount();
 		this->_innerMap[secondAccount].unLockAccount();
-		printf("unlocked dst account\n");//TODO
 		*frozenAccount = secondAccount;
 		return SECOND_ACCOUNT_FROZEN; //second is frozen
 	}
-	this->_innerMap[srcAccountNumber].transferWithdraw(amount);//FIXME check enough money
-	this->_innerMap[dstAccountNumber].transferDeposit(amount);
+	bool withdrawRes = this->_innerMap[srcAccountNumber].transferWithdraw(amount);
+	if (withdrawRes == true) {
+		this->_innerMap[dstAccountNumber].transferDeposit(amount);
+	}
 	*srcBalance = this->_innerMap[srcAccountNumber].transferCheckBalance();
 	*dstBalance = this->_innerMap[dstAccountNumber].transferCheckBalance();
 	this->_innerMap[secondAccount].unLockAccount();
-	printf("secondAccount unlocked: %d \n", firstAccount);//TODO
 	this->_innerMap[firstAccount].unLockAccount();
-	printf("firstAccount unlocked: %d \n", firstAccount);//TODO
+	if (withdrawRes == false) {
+		throw NotEnoughMoneyException();
+	}
 	return TRANSFER_SUCCESSFUL;
 }
 
@@ -212,9 +201,7 @@ int bankMap::takeComission(int accountNumber, int percentage) {
 	if (this->isAccountInMap(accountNumber) == false) {
 		throw AccountDoesntExistException();
 	}
-	int currBalance = this->_innerMap[accountNumber].getBalance();
-	int commission = (currBalance * percentage)/100;
-	this->_innerMap[accountNumber].withrawMoney(commission);
+	int commission = this->_innerMap[accountNumber].withrawMoneyForCommission(percentage);
 	return commission;
 }
 

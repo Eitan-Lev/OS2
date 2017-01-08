@@ -10,6 +10,7 @@
 
 #include <pthread.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #define ACCOUNT_NOT_ENOUGH_MONEY 0
 #define ACCOUNT_SUCCESS 1
@@ -62,11 +63,13 @@ public:
 	int getNumber();
 	int getPassword();
 	int getBalance();
+	int getBalanceNoSleep();
 	bool isAccountFrozen();//True if frozen, false if not frozen
 	bool freeze();//False if already frozen, true otherwise
 	bool unFreeze();//False if already not frozen, true otherwise
-	int withrawMoney(int withrawSum);//False if not enough money or account frozen, true otherwise
-	int depositMoney(int depositSum);//False if sum causes unsigned int overflow or account frozen, true otherwise
+	int withrawMoney(int withrawSum);
+	int withrawMoneyForCommission(int percentage);//Return commission sum
+	int depositMoney(int depositSum);
 	void printAccount();
 	void lockAccount();//Use only for money transfer!
 	void unLockAccount();//Use only for money transfer!
