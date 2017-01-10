@@ -21,7 +21,6 @@ int bankAccount::getPassword() {//No need for locks, once account is created, pa
 }
 
 int bankAccount::getBalance() {
-	NOT_TRANSFER_FUNC_INIT();
 	pthread_mutex_lock(&read_balance_lock);//Lock readers
 	readBalanceCounter++;//Indicate 1 more thread is reading
 	if (readBalanceCounter == 1) {//First reader
@@ -36,12 +35,10 @@ int bankAccount::getBalance() {
 		pthread_mutex_unlock(&write_balance_lock);
 	}
 	pthread_mutex_unlock(&read_balance_lock);//Unlock readers
-	NOT_TRANSFER_FUNC_END();
 	return currentBalance;
 }
 
 int bankAccount::getBalanceNoSleep() {
-	NOT_TRANSFER_FUNC_INIT();
 	pthread_mutex_lock(&read_balance_lock);//Lock readers
 	readBalanceCounter++;//Indicate 1 more thread is reading
 	if (readBalanceCounter == 1) {//First reader
@@ -55,12 +52,10 @@ int bankAccount::getBalanceNoSleep() {
 		pthread_mutex_unlock(&write_balance_lock);
 	}
 	pthread_mutex_unlock(&read_balance_lock);//Unlock readers
-	NOT_TRANSFER_FUNC_END();
 	return currentBalance;
 }
 
 bool bankAccount::isAccountFrozen() {
-	NOT_TRANSFER_FUNC_INIT();
 	pthread_mutex_lock(&read_freeze_lock);//Lock readers
 	readFreezeCounter++;//Indicate 1 more thread is reading
 	if (readFreezeCounter == 1) {//First reader
@@ -74,13 +69,11 @@ bool bankAccount::isAccountFrozen() {
 		pthread_mutex_unlock(&write_freeze_lock);
 	}
 	pthread_mutex_unlock(&read_freeze_lock);//Unlock readers
-	NOT_TRANSFER_FUNC_END();
 	return currentFreezeStatus;
 }
 
 bool bankAccount::freeze() {
 	bool resFreeze;
-	NOT_TRANSFER_FUNC_INIT();
 	pthread_mutex_lock(&write_freeze_lock);
 	if (this->_isFrozen == true) {
 		resFreeze = false;
@@ -88,12 +81,10 @@ bool bankAccount::freeze() {
 		this->_isFrozen = true;
 	}
 	pthread_mutex_unlock(&write_freeze_lock);
-	NOT_TRANSFER_FUNC_END();
 	return resFreeze;
 }
 bool bankAccount::unFreeze() {
 	bool resFreeze;
-	NOT_TRANSFER_FUNC_INIT();
 	pthread_mutex_lock(&write_freeze_lock);
 	if (this->_isFrozen == false) {
 		resFreeze = false;
@@ -101,47 +92,33 @@ bool bankAccount::unFreeze() {
 		this->_isFrozen = false;
 	}
 	pthread_mutex_unlock(&write_freeze_lock);
-	NOT_TRANSFER_FUNC_END();
 	return resFreeze;
 }
 
-int bankAccount::withrawMoney(int withrawSum) {
+int bankAccount::withrawMoney(int withrawSum, int* currentBalance) {
 	int tmpBalance, resVar;
-	NOT_TRANSFER_FUNC_INIT();
-	pthread_mutex_lock(&read_freeze_lock);//Lock readers
-	readFreezeCounter++;//Indicate 1 more thread is reading
-	if (readFreezeCounter == 1) {//First reader
-		pthread_mutex_lock(&write_freeze_lock);
-	}
-	sleep(1);
-	pthread_mutex_unlock(&read_freeze_lock);
-	if (this->_isFrozen == true) {
+	bool isFrozen = this->freezeReadStatusAndMarkReaders();
+	//this->freezeStatusUnMarkReaders();//TODO
+	if (isFrozen == true) {
 		resVar = ACCOUNT_FROZEN;
 	} else {
 		pthread_mutex_lock(&write_balance_lock);
+		sleep(1);//TODO
 		tmpBalance = this->_balance;
 		if (withrawSum > tmpBalance) {
 			resVar = ACCOUNT_NOT_ENOUGH_MONEY;
 		} else {
 			this->_balance -= withrawSum;
+			*currentBalance = this->_balance;
 			resVar = ACCOUNT_SUCCESS;
 		}
-		//this->_balance -= withrawSum;
 		pthread_mutex_unlock(&write_balance_lock);
-		//resVar = ACCOUNT_SUCCESS;
 	}
-	pthread_mutex_lock(&read_freeze_lock);//Lock readers
-	readFreezeCounter--;//Indicate 1 less thread is reading
-	if (readFreezeCounter == 0) {//Last to read
-		pthread_mutex_unlock(&write_freeze_lock);
-	}
-	pthread_mutex_unlock(&read_freeze_lock);//Unlock readers
-	NOT_TRANSFER_FUNC_END();
+	this->freezeStatusUnMarkReaders();//TODO
 	return resVar;
 }
 
 int bankAccount::withrawMoneyForCommission(int percentage) {
-	NOT_TRANSFER_FUNC_INIT();
 	int commission;
 	pthread_mutex_lock(&write_balance_lock);
 	commission = (this->_balance * percentage)/100;
@@ -150,47 +127,33 @@ int bankAccount::withrawMoneyForCommission(int percentage) {
 	}
 	this->_balance -= commission;
 	pthread_mutex_unlock(&write_balance_lock);
-	NOT_TRANSFER_FUNC_END();
 	return commission;
 }
 
-int bankAccount::depositMoney(int depositSum) {
+int bankAccount::depositMoney(int depositSum, int* currentBalance) {
 	int tmpBalance, resVar;
-	NOT_TRANSFER_FUNC_INIT();
-	pthread_mutex_lock(&read_freeze_lock);//Lock readers
-	readFreezeCounter++;//Indicate 1 more thread is reading
-	if (readFreezeCounter == 1) {//First reader
-		pthread_mutex_lock(&write_freeze_lock);
-	}
-	sleep(1);
-	pthread_mutex_unlock(&read_freeze_lock);
-	if (this->_isFrozen == true) {
+	bool isFrozen = this->freezeReadStatusAndMarkReaders();
+	//this->freezeStatusUnMarkReaders();//TODO
+	if (isFrozen == true) {
 		resVar = ACCOUNT_FROZEN;
 	} else {
 		pthread_mutex_lock(&write_balance_lock);
+		sleep(1);//TODO
 		tmpBalance = this->_balance;
 		if ((depositSum + tmpBalance) < tmpBalance) {//int overflow, Should never happen
 			resVar = ACCOUNT_BALANCE_OVERFLOW;//Overflow Failure
 		} else {
+			*currentBalance = this->_balance;
 			this->_balance += depositSum;
 			resVar = ACCOUNT_SUCCESS;
 		}
-		//this->_balance += depositSum;
 		pthread_mutex_unlock(&write_balance_lock);
-		//resVar = ACCOUNT_SUCCESS;
 	}
-	pthread_mutex_lock(&read_freeze_lock);//Lock readers
-	readFreezeCounter--;//Indicate 1 less thread is reading
-	if (readFreezeCounter == 0) {//Last to read
-		pthread_mutex_unlock(&write_freeze_lock);
-	}
-	pthread_mutex_unlock(&read_freeze_lock);//Unlock readers
-	NOT_TRANSFER_FUNC_END();
+	this->freezeStatusUnMarkReaders();//TODO
 	return resVar;
 }
 
 void bankAccount::printAccount() {
-	NOT_TRANSFER_FUNC_INIT();
 	pthread_mutex_lock(&read_balance_lock);//Lock readers
 	readBalanceCounter++;//Indicate 1 more thread is reading
 	if (readBalanceCounter == 1) {//First reader
@@ -206,16 +169,25 @@ void bankAccount::printAccount() {
 	pthread_mutex_unlock(&read_balance_lock);//Unlock readers
 	cout << "Account " << this->_id << ": Balance - " << currentBalance <<
 			"$ , Account Password - " << this->_password << endl;
-	NOT_TRANSFER_FUNC_END();
 }
 
-void bankAccount::lockAccount() {
-	pthread_mutex_lock(&write_account_lock);
+bool bankAccount::lockForTransfer() {//Use only for money transfer!//TODO
+	bool freezeStatus = this->freezeReadStatusAndMarkReaders();//Keep account frozen while changing balance.
+	//this->freezeStatusUnMarkReaders();//TODO
+	if (freezeStatus == true) {
+		this->freezeStatusUnMarkReaders();//If frozen, don't perform transfer.//TODO
+		return false;
+	}
+	pthread_mutex_lock(&write_balance_lock);//Once account is confirmed to be unfrozen, lock for changing balance.
+	return true;
 }
 
-void bankAccount::unLockAccount() {
-	pthread_mutex_unlock(&write_account_lock);
+void bankAccount::unLockForTransfer() {//Use only for money transfer!//TODO
+	pthread_mutex_unlock(&write_balance_lock);//Now account can be changed
+	this->freezeStatusUnMarkReaders();//It is now ok to freeze account.//TODO
+	//TODO
 }
+
 bool bankAccount::transferWithdraw(int withrawSum) {
 	if (withrawSum > (this->_balance)) {
 		return false;
@@ -243,11 +215,28 @@ bool bankAccount::transferIsFrozen() {
 	return this->_isFrozen;
 }
 
+bool bankAccount::freezeReadStatusAndMarkReaders() {
+	pthread_mutex_lock(&read_freeze_lock);//Lock readers
+	readFreezeCounter++;//Indicate 1 more thread is reading
+	if (readFreezeCounter == 1) {//First reader
+		pthread_mutex_lock(&write_freeze_lock);
+	}
+	pthread_mutex_unlock(&read_freeze_lock);//Unlock readers
+	return this->_isFrozen;//No need to be locked, all readers can pull together. Writers are locked.
+}
+
+void bankAccount::freezeStatusUnMarkReaders() {
+	pthread_mutex_lock(&read_freeze_lock);//Lock readers
+	readFreezeCounter--;//Indicate 1 less thread is reading
+	if (readFreezeCounter == 0) {//Last to read
+		pthread_mutex_unlock(&write_freeze_lock);
+	}
+	pthread_mutex_unlock(&read_freeze_lock);//Unlock readers
+}
+
 bankAccount::~bankAccount() {
 	pthread_mutex_destroy(&read_balance_lock);
 	pthread_mutex_destroy(&write_balance_lock);
 	pthread_mutex_destroy(&read_freeze_lock);
 	pthread_mutex_destroy(&write_freeze_lock);
-	pthread_mutex_destroy(&read_account_lock);
-	pthread_mutex_destroy(&write_account_lock);
 }

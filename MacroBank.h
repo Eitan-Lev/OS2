@@ -137,23 +137,5 @@ using std::getline;
 		pthread_mutex_unlock(&log_file_lock); \
 	} while (0)
 
-#define NOT_TRANSFER_FUNC_INIT() do {\
-		pthread_mutex_lock(&read_account_lock); \
-		readAccountCounter++; \
-		if (readAccountCounter == 1) { \
-			pthread_mutex_lock(&write_account_lock); \
-		} \
-		pthread_mutex_unlock(&read_account_lock); \
-	} while (0)
-
-#define NOT_TRANSFER_FUNC_END() do {\
-		pthread_mutex_lock(&read_account_lock); \
-		readAccountCounter--; \
-		if (readAccountCounter == 0) { \
-			pthread_mutex_unlock(&write_account_lock); \
-		} \
-		pthread_mutex_unlock(&read_account_lock); \
-	} while (0)
-
 
 #endif /* MACROBANK_H_ */

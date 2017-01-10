@@ -18,10 +18,6 @@
 #include "Exceptions.h"
 #include "MacroBank.h"
 
-
-#define ERROR_VALUE (-1)
-#define SUCCESS_VALUE (0)
-
 using std::stringstream;
 using std::fstream;
 using std::string;
@@ -220,18 +216,23 @@ void* ATM_Run(void* cmds) {
 			pthread_mutex_lock(&map_lock);
 			bool isDstCurrentlyInMap = bankAccountsMap.isAccountInMap(dstAccountNumber);
 			pthread_mutex_unlock(&map_lock);
+			int srcNewBalance = ERROR_VALUE, dstNewBalance = ERROR_VALUE, frozenAccount = ERROR_VALUE;
 			if (isDstCurrentlyInMap == false) {
 				LOG_ACCOUNT_DOESNT_EXIST(atmNumber, dstAccountNumber);
 			} else {
 				try	{
-					int srcNewBalance = 0, dstNewBalance = 0, frozenAccount = 0;
 					int resTransfer = bankAccountsMap.transferMoneyAndSaveBalances(accountNumber, password,
 							dstAccountNumber, sum, &srcNewBalance, &dstNewBalance, &frozenAccount);
-					if (resTransfer == FIRST_ACCOUNT_FROZEN || resTransfer == SECOND_ACCOUNT_FROZEN) {
-						LOG_WRONG_PASSWORD(atmNumber, frozenAccount);
+					if (srcNewBalance == ERROR_VALUE || dstNewBalance == ERROR_VALUE) {
+						UNEXPECTED_EXCEPTION();//Transfer should have been successful. For debugging, should never happen.
 					} else {
 						LOG_TRANSFER(atmNumber, sum, accountNumber, dstAccountNumber, srcNewBalance, dstNewBalance);
 					}
+				} catch(AccountIsFrozenException&) {
+					if (frozenAccount == ERROR_VALUE) {//If one of the accounts is frozen but var wasn't changed, something went wrong.
+						UNEXPECTED_EXCEPTION();//For debugging, should never happen.
+					}
+					LOG_WRONG_PASSWORD(atmNumber, frozenAccount);
 				} catch (NotEnoughMoneyException&) {
 					LOG_NOT_ENOUGH_MONEY(atmNumber, accountNumber, sum);
 				} catch (WrongPasswordException&) {
@@ -264,9 +265,15 @@ void* ATM_Run(void* cmds) {
 			}
 		} else if (opCode == 'D') {//Deposit
 			try	{
-				bankAccountsMap.depositToAccount(accountNumber, password, sum);
-				LOG_DEPOSIT(atmNumber, accountNumber, bankAccountsMap.getAccountBalance(accountNumber,password), sum);
+				balance = bankAccountsMap.depositToAccount(accountNumber, password, sum);
+				if (balance == ERROR_VALUE) {//newBalance should have changed. For debugging, should never happen.
+					UNEXPECTED_EXCEPTION();//If not thrown and newBalance isn't legal, something went wrong.
+				} else {
+					LOG_DEPOSIT(atmNumber, accountNumber, balance, sum);
+				}
 			} catch (WrongPasswordException&) {
+				WRONG_PASSWORD_ILLEGALY();
+			} catch(AccountIsFrozenException&) {
 				LOG_WRONG_PASSWORD(atmNumber, accountNumber);//Frozen
 			} catch (AccountDoesntExistException&) {
 				ACCOUNT_DOESNT_EXIST_ILLEGALY();
@@ -277,9 +284,15 @@ void* ATM_Run(void* cmds) {
 			}
 		} else if (opCode == 'W') {//Withdraw
 			try	{
-				bankAccountsMap.withrawFromAccount(accountNumber, password, sum);
-				LOG_WITHDRAW(atmNumber, accountNumber, bankAccountsMap.getAccountBalance(accountNumber,password), sum);
+				balance = bankAccountsMap.withrawFromAccount(accountNumber, password, sum);
+				if (balance == ERROR_VALUE) {//newBalance should have changed. For debugging, should never happen.
+					UNEXPECTED_EXCEPTION();//If not thrown and newBalance isn't legal, something went wrong.
+				} else {
+					LOG_WITHDRAW(atmNumber, accountNumber, balance, sum);
+				}
 			} catch (WrongPasswordException&) {
+				WRONG_PASSWORD_ILLEGALY();
+			} catch(AccountIsFrozenException&) {
 				LOG_WRONG_PASSWORD(atmNumber, accountNumber);//Frozen
 			} catch (AccountDoesntExistException&) {
 				ACCOUNT_DOESNT_EXIST_ILLEGALY();

@@ -63,7 +63,7 @@ void bankMap::freezeAccount(int accountNumber, int accountPass) {
 	if(this->checkPassword(accountNumber, accountPass) == false) {
 		throw WrongPasswordException();
 	}
-	bool result = this->_innerMap[accountNumber].freeze();
+	this->_innerMap[accountNumber].freeze();
 }
 
 /*
@@ -82,7 +82,7 @@ void bankMap::unFreezeAccount(int accountNumber, int accountPass) {
 	if(this->checkPassword(accountNumber, accountPass) == false) {
 		throw WrongPasswordException();
 	}
-	bool result = this->_innerMap[accountNumber].unFreeze();
+	this->_innerMap[accountNumber].unFreeze();
 }
 
 /*
@@ -95,18 +95,20 @@ void bankMap::unFreezeAccount(int accountNumber, int accountPass) {
  * 		BalanceOverflowException if deposit causes int balance overflow.
  * Print Requirements: On wrong password, on account doesn't exist, on successful deposit.
  */
-void bankMap::depositToAccount(int accountNumber, int accountPass, int depositSum) {
+int bankMap::depositToAccount(int accountNumber, int accountPass, int depositSum) {
 	if (this->isAccountInMap(accountNumber) == false) {
 		throw AccountDoesntExistException();
 	} else if(this->checkPassword(accountNumber, accountPass) == false) {
 		throw WrongPasswordException();
 	}
-	int depositResult = this->_innerMap[accountNumber].depositMoney(depositSum);
+	int currentBalance = ERROR_VALUE;//Illegal value, for debugging
+	int depositResult = this->_innerMap[accountNumber].depositMoney(depositSum, &currentBalance);
 	if (depositResult == ACCOUNT_FROZEN) {//Account is frozen
-		throw WrongPasswordException();
+		throw AccountIsFrozenException();
 	} else if (depositResult == ACCOUNT_BALANCE_OVERFLOW) {//Balance overflow
 		throw BalanceOverflowException();
 	}
+	return currentBalance;
 }
 
 /*
@@ -119,18 +121,20 @@ void bankMap::depositToAccount(int accountNumber, int accountPass, int depositSu
  * 		NotEnoughMoneyException if balance not enough for withdrawal.
  * Print Requirements: On wrong password, on account doesn't exist, on not enough balance, on successful deposit.
  */
-void bankMap::withrawFromAccount(int accountNumber, int accountPass, int withrawSum) {
+int bankMap::withrawFromAccount(int accountNumber, int accountPass, int withrawSum) {
 	if (this->isAccountInMap(accountNumber) == false) {
 		throw AccountDoesntExistException();
 	} else if(this->checkPassword(accountNumber, accountPass) == false) {
 		throw WrongPasswordException();
 	}
-	int resWithdraw = this->_innerMap[accountNumber].withrawMoney(withrawSum);
+	int currentBalance = ERROR_VALUE;//Illegal value, for debugging
+	int resWithdraw = this->_innerMap[accountNumber].withrawMoney(withrawSum, &currentBalance);
 	if(resWithdraw == ACCOUNT_NOT_ENOUGH_MONEY) {//Not enough money
 		throw NotEnoughMoneyException();
 	} else if(resWithdraw == ACCOUNT_FROZEN) {//Frozen
-		throw WrongPasswordException();
+		throw AccountIsFrozenException();
 	}
+	return currentBalance;
 }
 
 /*
@@ -152,27 +156,28 @@ int bankMap::transferMoneyAndSaveBalances(int srcAccountNumber, int srcAccountPa
 	} else if (this->checkPassword(srcAccountNumber, srcAccountPass) == false) {
 		throw WrongPasswordException();
 	}
+	//int firstAccount = srcAccountNumber, secondAccount = dstAccountNumber;//FIXME for deadlock on purpose
 	int firstAccount = (srcAccountNumber >= dstAccountNumber) ? dstAccountNumber : srcAccountNumber;//To prevent deadlocks
 	int secondAccount = (srcAccountNumber >= dstAccountNumber) ? srcAccountNumber : dstAccountNumber;//To prevent deadlocks
-	this->_innerMap[firstAccount].lockAccount();
-	if(this->_innerMap[firstAccount].transferIsFrozen()) {
+	bool isNotFrozen = this->_innerMap[firstAccount].lockForTransfer();
+	if(isNotFrozen == false) {
 		*frozenAccount = firstAccount;
-		this->_innerMap[firstAccount].unLockAccount();
-		return FIRST_ACCOUNT_FROZEN; //first is frozen
+		this->_innerMap[firstAccount].unLockForTransfer();
+		throw AccountIsFrozenException();
 	}
 	if (srcAccountNumber == dstAccountNumber) {//Definitely not frozen
 		*srcBalance = this->_innerMap[firstAccount].transferCheckBalance();
 		*dstBalance = *srcBalance;
-		this->_innerMap[firstAccount].unLockAccount();
+		this->_innerMap[firstAccount].unLockForTransfer();
 		return SAME_ACCOUNT;//Same account. Legal, but acknowledge this
 	}
-	this->_innerMap[secondAccount].lockAccount();
-	sleep(1);
-	if(this->_innerMap[secondAccount].transferIsFrozen()) {
-		this->_innerMap[firstAccount].unLockAccount();
-		this->_innerMap[secondAccount].unLockAccount();
+	isNotFrozen = this->_innerMap[secondAccount].lockForTransfer();
+	sleep(1);//TODO
+	if(isNotFrozen == false) {
+		this->_innerMap[firstAccount].unLockForTransfer();
+		this->_innerMap[secondAccount].unLockForTransfer();
 		*frozenAccount = secondAccount;
-		return SECOND_ACCOUNT_FROZEN; //second is frozen
+		throw AccountIsFrozenException();
 	}
 	bool withdrawRes = this->_innerMap[srcAccountNumber].transferWithdraw(amount);
 	if (withdrawRes == true) {
@@ -180,8 +185,8 @@ int bankMap::transferMoneyAndSaveBalances(int srcAccountNumber, int srcAccountPa
 	}
 	*srcBalance = this->_innerMap[srcAccountNumber].transferCheckBalance();
 	*dstBalance = this->_innerMap[dstAccountNumber].transferCheckBalance();
-	this->_innerMap[secondAccount].unLockAccount();
-	this->_innerMap[firstAccount].unLockAccount();
+	this->_innerMap[secondAccount].unLockForTransfer();
+	this->_innerMap[firstAccount].unLockForTransfer();
 	if (withdrawRes == false) {
 		throw NotEnoughMoneyException();
 	}

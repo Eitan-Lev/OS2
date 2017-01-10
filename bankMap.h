@@ -42,8 +42,8 @@ public:
 	int getAccountBalance(int accountNumber, int accountPass);
 	void freezeAccount(int accountNumber, int accountPass);
 	void unFreezeAccount(int accountNumber, int accountPass);
-	void depositToAccount(int accountNumber, int accountPass, int depositSum);
-	void withrawFromAccount(int accountNumber, int accountPass, int withrawSum);
+	int depositToAccount(int accountNumber, int accountPass, int depositSum);//return balance
+	int withrawFromAccount(int accountNumber, int accountPass, int withrawSum);//return balance
 	int transferMoneyAndSaveBalances(int srcAccountNumber, int srcAccountPass,
 			int destAccountNumber, int amount, int* srcBalance, int* dstBalance, int* frozenAccount);
 	int takeComission(int accountNumber, int percentage);

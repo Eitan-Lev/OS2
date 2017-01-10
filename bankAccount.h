@@ -12,6 +12,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#define ERROR_VALUE (-1)
+#define SUCCESS_VALUE (0)
+
 #define ACCOUNT_NOT_ENOUGH_MONEY 0
 #define ACCOUNT_SUCCESS 1
 #define ACCOUNT_FROZEN 2
@@ -31,34 +34,27 @@ private:
 	bool _isFrozen;
 	int readBalanceCounter;
 	int readFreezeCounter;
-	int readAccountCounter;
 	pthread_mutex_t read_balance_lock;
 	pthread_mutex_t write_balance_lock;
 	pthread_mutex_t read_freeze_lock;
 	pthread_mutex_t write_freeze_lock;
-	pthread_mutex_t read_account_lock;
-	pthread_mutex_t write_account_lock;
 public:
 	//Empty Constructor:
 	bankAccount() : _id(0), _password(0), _balance (0),
-		_isFrozen(false), readBalanceCounter(0), readFreezeCounter(0) , readAccountCounter(0){
+		_isFrozen(false), readBalanceCounter(0), readFreezeCounter(0) {
 		pthread_mutex_init(&read_balance_lock, NULL);
 		pthread_mutex_init(&write_balance_lock, NULL);
 		pthread_mutex_init(&read_freeze_lock, NULL);
 		pthread_mutex_init(&write_freeze_lock, NULL);
-		pthread_mutex_init(&read_account_lock, NULL);
-		pthread_mutex_init(&write_account_lock, NULL);
 	}
 	//Constructor:
 	bankAccount(int accountNumber, int accountPass, int balance, bool isFrozen = false) :
 		_id(accountNumber), _password(accountPass), _balance (balance), _isFrozen(isFrozen),
-		readBalanceCounter(0), readFreezeCounter(0), readAccountCounter(0) {
+		readBalanceCounter(0), readFreezeCounter(0) {
 		pthread_mutex_init(&read_balance_lock, NULL);
 		pthread_mutex_init(&write_balance_lock, NULL);
 		pthread_mutex_init(&read_freeze_lock, NULL);
 		pthread_mutex_init(&write_freeze_lock, NULL);
-		pthread_mutex_init(&read_account_lock, NULL);
-		pthread_mutex_init(&write_account_lock, NULL);
 	}
 	int getNumber();
 	int getPassword();
@@ -67,9 +63,9 @@ public:
 	bool isAccountFrozen();//True if frozen, false if not frozen
 	bool freeze();//False if already frozen, true otherwise
 	bool unFreeze();//False if already not frozen, true otherwise
-	int withrawMoney(int withrawSum);
+	int withrawMoney(int withrawSum, int* currentBalance);
 	int withrawMoneyForCommission(int percentage);//Return commission sum
-	int depositMoney(int depositSum);
+	int depositMoney(int depositSum, int* currentBalance);
 	void printAccount();
 	void lockAccount();//Use only for money transfer!
 	void unLockAccount();//Use only for money transfer!
@@ -77,6 +73,10 @@ public:
 	bool transferDeposit(int depositSum);//Use only for money transfer and only after lockAccount!
 	int transferCheckBalance();//Use only for money transfer and only after lockAccount!
 	bool transferIsFrozen();//Use only for money transfer and only after lockAccount!
+	bool freezeReadStatusAndMarkReaders();//TODO
+	void freezeStatusUnMarkReaders();//TODO
+	bool lockForTransfer();//Use only for money transfer! Return false if frozen.
+	void unLockForTransfer();//Use only for money transfer!
 	~bankAccount();
 };
 

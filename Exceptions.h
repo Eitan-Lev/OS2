@@ -18,6 +18,7 @@ class InvalidPasswordException : public BankAccountException {};//Should never h
 class WrongPasswordException : public BankAccountException {};
 class NotEnoughMoneyException : public BankAccountException {};
 class BalanceOverflowException : public BankAccountException {};//Should never happen
+class AccountIsFrozenException : public BankAccountException {};
 
 
 
