@@ -98,12 +98,11 @@ bool bankAccount::unFreeze() {
 int bankAccount::withrawMoney(int withrawSum, int* currentBalance) {
 	int tmpBalance, resVar;
 	bool isFrozen = this->freezeReadStatusAndMarkReaders();
-	//this->freezeStatusUnMarkReaders();//TODO
 	if (isFrozen == true) {
 		resVar = ACCOUNT_FROZEN;
 	} else {
 		pthread_mutex_lock(&write_balance_lock);
-		sleep(1);//TODO
+		sleep(1);
 		tmpBalance = this->_balance;
 		if (withrawSum > tmpBalance) {
 			resVar = ACCOUNT_NOT_ENOUGH_MONEY;
@@ -114,7 +113,7 @@ int bankAccount::withrawMoney(int withrawSum, int* currentBalance) {
 		}
 		pthread_mutex_unlock(&write_balance_lock);
 	}
-	this->freezeStatusUnMarkReaders();//TODO
+	this->freezeStatusUnMarkReaders();
 	return resVar;
 }
 
@@ -133,12 +132,11 @@ int bankAccount::withrawMoneyForCommission(int percentage) {
 int bankAccount::depositMoney(int depositSum, int* currentBalance) {
 	int tmpBalance, resVar;
 	bool isFrozen = this->freezeReadStatusAndMarkReaders();
-	//this->freezeStatusUnMarkReaders();//TODO
 	if (isFrozen == true) {
 		resVar = ACCOUNT_FROZEN;
 	} else {
 		pthread_mutex_lock(&write_balance_lock);
-		sleep(1);//TODO
+		sleep(1);
 		tmpBalance = this->_balance;
 		if ((depositSum + tmpBalance) < tmpBalance) {//int overflow, Should never happen
 			resVar = ACCOUNT_BALANCE_OVERFLOW;//Overflow Failure
@@ -149,7 +147,7 @@ int bankAccount::depositMoney(int depositSum, int* currentBalance) {
 		}
 		pthread_mutex_unlock(&write_balance_lock);
 	}
-	this->freezeStatusUnMarkReaders();//TODO
+	this->freezeStatusUnMarkReaders();
 	return resVar;
 }
 
@@ -171,21 +169,19 @@ void bankAccount::printAccount() {
 			"$ , Account Password - " << this->_password << endl;
 }
 
-bool bankAccount::lockForTransfer() {//Use only for money transfer!//TODO
+bool bankAccount::lockForTransfer() {//Use only for money transfer!
 	bool freezeStatus = this->freezeReadStatusAndMarkReaders();//Keep account frozen while changing balance.
-	//this->freezeStatusUnMarkReaders();//TODO
 	if (freezeStatus == true) {
-		this->freezeStatusUnMarkReaders();//If frozen, don't perform transfer.//TODO
+		this->freezeStatusUnMarkReaders();//If frozen, don't perform transfer.
 		return false;
 	}
 	pthread_mutex_lock(&write_balance_lock);//Once account is confirmed to be unfrozen, lock for changing balance.
 	return true;
 }
 
-void bankAccount::unLockForTransfer() {//Use only for money transfer!//TODO
+void bankAccount::unLockForTransfer() {//Use only for money transfer!
 	pthread_mutex_unlock(&write_balance_lock);//Now account can be changed
-	this->freezeStatusUnMarkReaders();//It is now ok to freeze account.//TODO
-	//TODO
+	this->freezeStatusUnMarkReaders();//It is now ok to freeze account.
 }
 
 bool bankAccount::transferWithdraw(int withrawSum) {

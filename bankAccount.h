@@ -73,8 +73,8 @@ public:
 	bool transferDeposit(int depositSum);//Use only for money transfer and only after lockAccount!
 	int transferCheckBalance();//Use only for money transfer and only after lockAccount!
 	bool transferIsFrozen();//Use only for money transfer and only after lockAccount!
-	bool freezeReadStatusAndMarkReaders();//TODO
-	void freezeStatusUnMarkReaders();//TODO
+	bool freezeReadStatusAndMarkReaders();
+	void freezeStatusUnMarkReaders();
 	bool lockForTransfer();//Use only for money transfer! Return false if frozen.
 	void unLockForTransfer();//Use only for money transfer!
 	~bankAccount();

@@ -156,7 +156,6 @@ int bankMap::transferMoneyAndSaveBalances(int srcAccountNumber, int srcAccountPa
 	} else if (this->checkPassword(srcAccountNumber, srcAccountPass) == false) {
 		throw WrongPasswordException();
 	}
-	//int firstAccount = srcAccountNumber, secondAccount = dstAccountNumber;//FIXME for deadlock on purpose
 	int firstAccount = (srcAccountNumber >= dstAccountNumber) ? dstAccountNumber : srcAccountNumber;//To prevent deadlocks
 	int secondAccount = (srcAccountNumber >= dstAccountNumber) ? srcAccountNumber : dstAccountNumber;//To prevent deadlocks
 	bool isNotFrozen = this->_innerMap[firstAccount].lockForTransfer();
@@ -172,7 +171,7 @@ int bankMap::transferMoneyAndSaveBalances(int srcAccountNumber, int srcAccountPa
 		return SAME_ACCOUNT;//Same account. Legal, but acknowledge this
 	}
 	isNotFrozen = this->_innerMap[secondAccount].lockForTransfer();
-	sleep(1);//TODO
+	sleep(1);
 	if(isNotFrozen == false) {
 		this->_innerMap[firstAccount].unLockForTransfer();
 		this->_innerMap[secondAccount].unLockForTransfer();
